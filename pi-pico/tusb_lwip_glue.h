@@ -16,6 +16,7 @@ void init_lwip();
 void wait_for_netif_is_up();
 void dhcpd_init();
 void service_traffic();
+extern struct netif netif_data;
 
 
 #ifdef __cplusplus

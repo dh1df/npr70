@@ -30,7 +30,7 @@
 #include "pico/unique_id.h"
 
 /* lwip context */
-static struct netif netif_data;
+struct netif netif_data;
 
 /* shared between tud_network_recv_cb() and service_traffic() */
 static struct pbuf *received_frame;

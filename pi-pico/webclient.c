@@ -15,6 +15,8 @@ err_t error;
 
 struct tcp_pcb *testpcb;
 
+
+
 err_t tcpRecvCallback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 {
     gpio_put(LED_PIN, 0);
@@ -26,26 +28,26 @@ err_t tcpRecvCallback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
         printf("The remote host closed the connection.\n");
         printf("Now I'm closing the connection.\n");
         //tcp_close_con();
-        tcp_close(testpcb);
+        tcp_close(tpcb);
         return ERR_ABRT;
     } else {
         printf("Number of pbufs %d\n", pbuf_clen(p));
         printf("Contents of pbuf %.*s\n", p->len, (char *)p->payload);
+	if (p->len && p->payload) {
+	   char *c=(char *)p->payload;
+	   if (c[0] == 'x') {
+              tcp_close(tpcb);
+	      reset_usb_boot(0,0);
+           }
+        }
     }
 
     return 0;
 }
 
-uint32_t tcp_send_packet(void)
+uint32_t tcp_send_packet(struct tcp_pcb *pcb)
 {
-    char *string =
-#if    SCENARIO == 1
-    "GET /index.html HTTP/1.0\r\nHost: foo.bar\r\n\r\n";
-#elif  SCENARIO == 2
-    "GET /cgi-bin/sol.English.pl?60000 HTTP/1.0\r\nHost: stamm-wilbrandt.de\r\n\r\n";
-#else
-    "GET /index.html HTTP/1.0\r\nHost: neverssl.com\r\n\r\n";
-#endif
+    char *string = "Hello\r\n";
     uint32_t len = strlen(string);
 
     gpio_put(LED_PIN, 1);
@@ -54,7 +56,7 @@ uint32_t tcp_send_packet(void)
     last = time_us_32();
 
     /* push to buffer */
-    err_t    error = tcp_write(testpcb, string, strlen(string), TCP_WRITE_FLAG_COPY);
+    err_t    error = tcp_write(pcb, string, strlen(string), TCP_WRITE_FLAG_COPY);
 
     if (error) {
         printf("ERROR: Code: %d (tcp_send_packet :: tcp_write)\n", error);
@@ -62,13 +64,25 @@ uint32_t tcp_send_packet(void)
     }
 
     /* now send */
-    error = tcp_output(testpcb);
+    error = tcp_output(pcb);
     if (error) {
         printf("ERROR: Code: %d (tcp_send_packet :: tcp_output)\n", error);
         return 1;
     }
     return 0;
 }
+
+err_t tcpPollCallback(void *arg, struct tcp_pcb *tpcb)
+{
+  err_t ret_err = ERR_OK;
+  static int sent;
+  if (!sent) {
+      tcp_send_packet(tpcb);
+      sent=1;
+  }
+  return ret_err;
+}
+
 
 err_t tcpSendCallback(void* arg, struct tcp_pcb *pcb, u16_t len)
 {
@@ -85,54 +99,63 @@ void tcpErrorHandler(void* arg, err_t err)
     for(;;)  { gpio_xor_mask(1 << LED_PIN);  sleep_ms(250); }
 }
 
-/* connection established callback, err is unused and only return 0 */
-err_t connectCallback(void *arg, struct tcp_pcb *tpcb, err_t err)
+
+err_t tcpAcceptCallback(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
-    printf("Connection Established: %dus\n", time_us_32()-last);
-    last = time_us_32();
-    printf("Now sending a packet\n");
-    tcp_send_packet();
-    return 0;
+  err_t ret_err;
+  uint32_t data = 0xdeadbeef;
+  void *es = &data;
+
+  LWIP_UNUSED_ARG(arg);
+  if ((err != ERR_OK) || (newpcb == NULL)) {
+    return ERR_VAL;
+  }
+
+  /* Unless this pcb should have NORMAL priority, set its priority now.
+     When running out of pcbs, low priority pcbs can be aborted to create
+     new pcbs of higher priority. */
+  tcp_setprio(newpcb, TCP_PRIO_MIN);
+
+  if (es != NULL) {
+    /* pass newly allocated es to our callbacks */
+    tcp_arg(newpcb, es);
+    tcp_err(newpcb, tcpErrorHandler);
+    tcp_recv(newpcb, tcpRecvCallback);
+    tcp_sent(newpcb, tcpSendCallback);
+    tcp_poll(newpcb, tcpPollCallback, 0);
+    tcp_send_packet(newpcb); 
+    ret_err = ERR_OK;
+  } else {
+    ret_err = ERR_MEM;
+  }
+  return ret_err;
 }
+
 
 void tcp_setup(void)
 {
-    uint32_t data = 0xdeadbeef;
+    err_t err;
 
     printf("tcp_setup(): %dus\n",time_us_32()-last);
     last = time_us_32();
 
     gpio_put(LED_PIN, 1);
 
-    /* create an ip */
-    struct ip4_addr ip;
-#if  SCENARIO == 3
-    IP4_ADDR(&ip, 13, 225, 84, 121);  //IP of neverssl.com
-#else
-    IP4_ADDR(&ip, 192, 168, 7, 2);    //IP of Pi400 the Pico is connected to
-#endif
-
     /* create the control block */
     testpcb = tcp_new();    //testpcb is a global struct tcp_pcb
                             // as defined by lwIP
 
 
-    /* dummy data to pass to callbacks*/
 
-    tcp_arg(testpcb, &data);
+    err = tcp_bind(testpcb, IP_ANY_TYPE, 23);
+    if (err == ERR_OK) {
+        testpcb = tcp_listen(testpcb);
+        tcp_accept(testpcb, tcpAcceptCallback);
+    } else {
+        /* abort? output diagnostic? */
+    }
 
-    /* register callbacks with the pcb */
 
-    tcp_err(testpcb, tcpErrorHandler);
-    tcp_recv(testpcb, tcpRecvCallback);
-    tcp_sent(testpcb, tcpSendCallback);
-
-    /* now connect */
-#if  SCENARIO == 2
-    tcp_connect(testpcb, &ip, 4433, connectCallback);
-#else
-    tcp_connect(testpcb, &ip, 80, connectCallback);
-#endif
 }
 
 int main()
@@ -156,9 +179,7 @@ int main()
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
     gpio_put(LED_PIN, 1);
-#if 0
     tcp_setup();
-#endif
 
     while (true)
     {
