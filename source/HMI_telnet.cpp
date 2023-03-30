@@ -197,6 +197,7 @@ int telnet_loop (W5500_chip* W5500) {
 }
 
 int serial_term_loop (void) {
+#if 0
 	char loc_char;
 	
 	if (pc.readable()) {
@@ -235,6 +236,9 @@ int serial_term_loop (void) {
 	} else {
 		return 0;
 	}
+#else
+	return 0;
+#endif
 }
 
 void HMI_line_parse (char* RX_text, int RX_text_count) {
