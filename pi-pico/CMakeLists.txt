@@ -21,11 +21,11 @@ set(TINYUSB_LIBNETWORKING_SOURCES
     ${PICO_TINYUSB_PATH}/lib/networking/rndis_reports.c
 )
 
-add_executable(${PROJECT_NAME} webclient.c tusb_lwip_glue.c usb_descriptors.c ${TINYUSB_LIBNETWORKING_SOURCES})
+add_executable(${PROJECT_NAME} webclient.cpp tusb_lwip_glue.c usb_descriptors.c ${TINYUSB_LIBNETWORKING_SOURCES} ../source/HMI_telnet.cpp ../source/global_variables.cpp ../source/Eth_IPv4.cpp W5500_lwip.cpp RADIO.cpp misc.cpp)
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
-target_include_directories(${PROJECT_NAME} PRIVATE ${LWIP_INCLUDE_DIRS} ${PICO_TINYUSB_PATH}/src ${PICO_TINYUSB_PATH}/lib/networking)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LWIP_INCLUDE_DIRS} ${PICO_TINYUSB_PATH}/src ${PICO_TINYUSB_PATH}/lib/networking dummy)
 target_link_libraries(${PROJECT_NAME} pico_stdlib pico_unique_id tinyusb_device lwipcore)
 pico_add_extra_outputs(${PROJECT_NAME})
 
