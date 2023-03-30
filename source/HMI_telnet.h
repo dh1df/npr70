@@ -41,6 +41,8 @@ void HMI_TX_test(char* duration_txt);
 
 void HMI_reboot(void);
 
+void HMI_bootloader(void);
+
 void HMI_force_exit(void);
 
 void HMI_exit(void);

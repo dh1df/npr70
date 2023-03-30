@@ -26,6 +26,9 @@
 #include "TDMA.h"
 #include "DHCP_ARP.h"
 #include "L1L2_radio.h"
+#ifdef PICO_BOARD
+#include "pico/bootrom.h"
+#endif
 
 static char current_rx_line[100];
 //static char HMI_out_str[100];
@@ -314,6 +317,12 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			command_understood = 1;
 			HMI_reboot();
 		}
+#ifdef PICO_BOARD
+		if (strcmp(loc_command_str, "bootloader") == 0) {
+			command_understood = 1;
+			HMI_bootloader();
+		}
+#endif
 		if (strcmp(loc_command_str, "save") == 0) {
 			command_understood = 1;
 
@@ -407,6 +416,15 @@ void HMI_reboot(void) {
 	//extern "C" void mbed_reset();
 	NVIC_SystemReset();
 }
+
+#ifdef PICO_BOARD
+void HMI_bootloader(void) {
+	if (is_telnet_opened == 1) {
+		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08);
+	}
+	reset_usb_boot(0,0);	
+}
+#endif
 
 void HMI_force_exit(void) {
 	unsigned char IP_loc[8];

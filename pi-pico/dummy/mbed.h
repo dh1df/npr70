@@ -1,6 +1,7 @@
 #ifndef __MBED_H__
 #include <string.h>
 #include <stdio.h>
+#include "pico/stdlib.h"
 #define SERIAL_TX 0
 #define SERIAL_RX 0
 class Serial {
@@ -15,7 +16,7 @@ class Timeout {
 };
 class Timer {
 public:
-   int read_us(void) { return 0; }
+   int read_us(void) { return time_us_32(); }
 };
 typedef int AnalogIn;
 typedef int DigitalIn;
