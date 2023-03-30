@@ -143,6 +143,7 @@ err_t tcpAcceptCallback(void *arg, struct tcp_pcb *newpcb, err_t err)
   int s=TELNET_SOCKET;
   W5500_channel[s].conn=newpcb;
   debug("tcpAcceptCallback\r\n");
+  debug("tcpAcceptCallback2\r\n");
 
   LWIP_UNUSED_ARG(arg);
   if ((err != ERR_OK) || (newpcb == NULL)) {
@@ -195,7 +196,9 @@ void tcp_setup(void)
     err = tcp_bind(testpcb, IP_ANY_TYPE, 23);
     if (err == ERR_OK) {
         testpcb = tcp_listen(testpcb);
-        tcp_accept(testpcb, tcpAcceptCallback);
+  int s=TELNET_SOCKET;
+    tcp_arg(testpcb, &W5500_channel[s]);
+        tcp_accept(testpcb, W5500_accept);
     } else {
         /* abort? output diagnostic? */
     }

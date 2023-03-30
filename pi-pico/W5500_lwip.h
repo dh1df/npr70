@@ -16,3 +16,4 @@ extern struct W5500_channel {
 struct pbuf *W5500_dequeue(struct W5500_channel *c, enum W5500_dir dir);
 void W5500_enqueue(struct W5500_channel *c, enum W5500_dir dir, unsigned char *data, int size);
 err_t W5500_transmit(struct W5500_channel *c);
+err_t W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
