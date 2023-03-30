@@ -1,8 +1,9 @@
 Attempt to port NPR70 to the pi pico
 Buid instructions:
-From here:
-submodule update --init
-mkdir build 
+In this directory:
+git submodule update --init
+mkdir build
+cd build
 cmake ..
 Flash pico_webclient.uf2
 telnet 192.168.7.1
