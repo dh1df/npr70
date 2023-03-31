@@ -347,6 +347,26 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			command_understood = 1;
 			HMI_exit();
 		}
+		if (strcmp(loc_command_str, "help") == 0) {
+			command_understood = 1;
+			HMI_printf(
+					"radio on|off\r\n"
+					"TX_test secs\r\n"
+					"status\r\n"
+					"display config|static|DHCP_ARP\r\n"
+					"set var val\r\n"
+					"who\r\n"
+					"reboot\r\n"
+#ifdef PICO_BOARD
+					"bootloader\r\n"
+#endif
+					"save\r\n"
+					"reset_to_default\r\n"
+					"version\r\n"
+					"exit\r\n"
+					"help\r\n"
+			);
+		}
 		if (command_understood == 0) {
 			HMI_printf("unknown command\r\nready> ");
 		}
