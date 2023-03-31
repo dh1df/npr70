@@ -5,6 +5,7 @@ git submodule update --init
 mkdir build
 cd build
 cmake ..
+make
 Flash npr70.uf2
 telnet 192.168.7.1
-type "x" to reboot into bootloader
+type "bootloader" to reboot into bootloader
