@@ -21,11 +21,13 @@ void debug(const char *str, ...)
 	va_list ap;
 	char buffer[128];
 	va_start(ap, str);
+#if 0
 	vsnprintf(buffer, sizeof(buffer), str, ap);
-	W5500_enqueue(&W5500_channel[TELNET_SOCKET], TX,
-		      (unsigned char *) buffer, strlen(buffer));
+	W5500_transmit(&W5500_channel[TELNET_SOCKET], (unsigned char *)buffer, strlen(buffer));
+#else
+	vprintf(str, ap);
+#endif
 	va_end(ap);
-	W5500_transmit(&W5500_channel[TELNET_SOCKET]);
 }
 
 
@@ -56,7 +58,11 @@ void tcp_setup(void)
 
 int main()
 {
+#if 0
 	stdio_uart_init();
+#else
+	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
+#endif
 
 	// Initialize tinyusb, lwip, dhcpd and httpd
 	init_lwip();
