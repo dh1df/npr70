@@ -5,6 +5,6 @@ git submodule update --init
 mkdir build
 cd build
 cmake ..
-Flash pico_webclient.uf2
+Flash npr70.uf2
 telnet 192.168.7.1
 type "x" to reboot into bootloader
