@@ -8,46 +8,42 @@
 struct W5500_channel W5500_channel[NR_SOCKETS];
 
 struct pbuf *
-W5500_dequeue(struct W5500_channel *c, enum W5500_dir dir)
+W5500_dequeue(struct W5500_channel *c)
 {
-	struct pbuf *ret=c->pbuf[dir];
+	struct pbuf *ret=c->pbuf;
 	if (ret) {
-		c->pbuf[dir]=pbuf_dechain(c->pbuf[dir]);
+		c->pbuf=pbuf_dechain(c->pbuf);
 	}
 	return ret;
 }
 
 void
-W5500_enqueue(struct W5500_channel *c, enum W5500_dir dir, unsigned char *data, int size)
+W5500_enqueue(struct W5500_channel *c, unsigned char *data, int size)
 {
 	struct pbuf *p=pbuf_alloc(PBUF_RAW, size, PBUF_RAM);
 	memcpy(p->payload, data, size);
-	if (c->pbuf[dir]) {
-		pbuf_chain(c->pbuf[dir], p);
+	if (c->pbuf) {
+		pbuf_chain(c->pbuf, p);
 	} else {
-		c->pbuf[dir]=p;
+		c->pbuf=p;
 	}
 }
 
 int
-W5500_next_size(struct W5500_channel *c, enum W5500_dir dir)
+W5500_next_size(struct W5500_channel *c)
 {
-	if (!c->pbuf[dir])
+	if (!c->pbuf)
 		return 0;
-	return c->pbuf[dir]->len;
+	return c->pbuf->len;
 }
 
 err_t
-W5500_transmit(struct W5500_channel *c)
+W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 {
 	err_t err = ERR_OK;
-	struct pbuf *p=W5500_dequeue(c, TX);
-	if (p) {
-		err = tcp_write(c->conn, p->payload, p->len, TCP_WRITE_FLAG_COPY);
-		if (!err) {
-			err=tcp_output(c->conn);
-		}
-                pbuf_free(p);
+	err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
+	if (!err) {
+		err=tcp_output(c->conn);
 	}
 	return err;
 }
@@ -72,7 +68,7 @@ W5500_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 		return ERR_ABRT;
 	} else {
 		if (p->len && p->payload) {
-			W5500_enqueue(c, RX, (unsigned char *)p->payload, p->len);
+			W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 		}
 	}
 
@@ -83,8 +79,10 @@ err_t
 W5500_tcp_sent(void* arg, struct tcp_pcb *pcb, u16_t len)
 {
 	struct W5500_channel *c=(struct W5500_channel *)arg;
-	W5500_transmit(c);
 	gpio_put(LED_PIN, 0);
+#if 0
+	tcp_output(c->conn);
+#endif
 	return 0;
 }
 
@@ -95,7 +93,7 @@ W5500_poll(void *arg, struct tcp_pcb *tpcb)
 	struct W5500_channel *c=(struct W5500_channel *)arg;
 	err_t ret_err = ERR_OK;
 
-	W5500_transmit(c);
+	tcp_output(c->conn);
 
 	return ret_err;
 }
@@ -166,9 +164,15 @@ void
 W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data, int size, int send_mac) 
 {
 	struct W5500_channel *c=&W5500_channel[sock_nb];
-	W5500_enqueue(c, TX, data, size);
 #if 0
+	W5500_enqueue(c, TX, data, size);
+#if 1
 	W5500_transmit(c);
+#endif
+#else
+	fwrite(data, size, 1, stdout);
+	fflush(stdout);
+	W5500_transmit(c, data, size);
 #endif
 }
 
@@ -176,7 +180,7 @@ void
 W5500_read_RX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, uint8_t* data, int size)
 {
 	struct W5500_channel *c=&W5500_channel[sock_nb];
-	struct pbuf *p=W5500_dequeue(c, RX);
+	struct pbuf *p=W5500_dequeue(c);
 #if 0
 	debug("read_RX %p %d\r\n",p,size);
 #endif
@@ -196,5 +200,5 @@ uint16_t
 W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 {
 	struct W5500_channel *c=&W5500_channel[sock_nb];
-	return W5500_next_size(c, RX);
+	return W5500_next_size(c);
 }
