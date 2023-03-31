@@ -132,7 +132,7 @@ int telnet_loop (W5500_chip* W5500) {
 		W5500_read_RX_buffer(W5500, TELNET_SOCKET, RX_data, RX_size+3);
 		// Note: RX_data starts with three extra bytes (W5500 register/block info) that are not
 		// part of the actual received data
-		RX_data[RX_size] = 0;
+		RX_data[RX_size+3] = 0;
 		i = 3;
 		j = 0;
 		while (i < (RX_size+3)) {
