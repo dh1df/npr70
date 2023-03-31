@@ -2,13 +2,27 @@
 #include <string.h>
 #include <stdio.h>
 #include "pico/stdlib.h"
+
+extern "C" void debug(const char *str, ...);
 #define SERIAL_TX 0
 #define SERIAL_RX 0
 class Serial {
 public:
 	Serial(int a, int b) {
 	};
+	int readable(void) {
+		return uart_is_readable(uart_default);
+	}
+	void sputc(int c) {
+		putc(c,stdout);
+	}
+	int sgetc(void) {
+		return getc(stdin);
+	}
 };
+
+#define pico_getc(s) s.sgetc()
+#define pico_putc(c,s) s.sputc(c)
 
 class SPI {
 };
@@ -26,6 +40,5 @@ typedef int InterruptIn;
 void NVIC_SystemReset(void);
 void wait_ms(int ms);
 extern "C" void misc_loop(void);
-extern "C" void debug(const char *str, ...);
 #define __MBED_H__
 #endif

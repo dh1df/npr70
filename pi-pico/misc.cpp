@@ -6,6 +6,7 @@ void wait_ms(int ms) {};
 void misc_loop(void)
 {
 	telnet_loop(NULL); 
+	serial_term_loop();
 }
 
 void TDMA_init_all(void)

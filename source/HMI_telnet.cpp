@@ -28,6 +28,8 @@
 #include "L1L2_radio.h"
 #ifdef PICO_BOARD
 #include "pico/bootrom.h"
+#define getc pico_getc
+#define putc pico_putc
 #endif
 
 static char current_rx_line[100];
@@ -200,9 +202,6 @@ int telnet_loop (W5500_chip* W5500) {
 }
 
 int serial_term_loop (void) {
-#ifdef PICO_BOARD
-	return 0;
-#else
 	char loc_char;
 	
 	if (pc.readable()) {
@@ -241,7 +240,6 @@ int serial_term_loop (void) {
 	} else {
 		return 0;
 	}
-#endif
 }
 
 void HMI_line_parse (char* RX_text, int RX_text_count) {
@@ -365,6 +363,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 					"version\r\n"
 					"exit\r\n"
 					"help\r\n"
+					"ready> "
 			);
 		}
 		if (command_understood == 0) {
