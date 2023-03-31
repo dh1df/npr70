@@ -158,6 +158,20 @@ W5500_write_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char b
 void
 W5500_read_long(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bloc_addr, unsigned char* RX_data, int RX_size)
 {
+	struct W5500_channel *c=&W5500_channel[bloc_addr];
+	switch(W5500_addr) {
+	case W5500_Sn_DIPR0:
+		if (RX_size == 7) {
+			ip_addr_t *ipaddr=&c->conn->remote_ip;
+			RX_data[0]=0;
+			RX_data[1]=0;
+			RX_data[2]=0;
+			RX_data[3]=ip4_addr1(ipaddr);
+			RX_data[4]=ip4_addr2(ipaddr);
+			RX_data[5]=ip4_addr3(ipaddr);
+			RX_data[6]=ip4_addr4(ipaddr);
+		}
+	}
 }
 
 void
