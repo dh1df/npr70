@@ -4,6 +4,8 @@
 #include "pico/stdlib.h"
 
 extern "C" void debug(const char *str, ...);
+#define HAVE_CALL_BOOTLOADER 1
+
 #define SERIAL_TX 0
 #define SERIAL_RX 0
 class Serial {
@@ -15,14 +17,15 @@ public:
 	}
 	void sputc(int c) {
 		putc(c,stdout);
+		fflush(stdout);
 	}
 	int sgetc(void) {
 		return getc(stdin);
 	}
 };
 
-#define pico_getc(s) s.sgetc()
-#define pico_putc(c,s) s.sputc(c)
+#define getc(s) s.sgetc()
+#define putc(c,s) s.sputc(c)
 
 class SPI {
 };
@@ -40,5 +43,6 @@ typedef int InterruptIn;
 void NVIC_SystemReset(void);
 void wait_ms(int ms);
 extern "C" void misc_loop(void);
+extern "C" void call_bootloader(void);
 #define __MBED_H__
 #endif
