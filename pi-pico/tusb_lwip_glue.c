@@ -75,7 +75,7 @@ static err_t linkoutput_fn(struct netif *netif, struct pbuf *p)
         return ERR_USE;
     
       /* if the network driver can accept another packet, we make it happen */
-      if (tud_network_can_xmit())
+      if (tud_network_can_xmit(p->len))
       {
         tud_network_xmit(p, 0 /* unused for this example */);
         return ERR_OK;
@@ -206,43 +206,3 @@ void wait_for_netif_is_up()
     while (!netif_is_up(&netif_data));    
 }
 
-
-/* lwip platform specific routines for Pico */
-static mutex_t lwip_mutex;
-static int lwip_mutex_count = 0;
-
-sys_prot_t sys_arch_protect(void)
-{
-    uint32_t owner;
-    if (!mutex_try_enter(&lwip_mutex, &owner))
-    {
-        if (owner != get_core_num())
-        {
-            // Wait until other core releases mutex
-            mutex_enter_blocking(&lwip_mutex);
-        }
-    }
-
-    lwip_mutex_count++;
-    
-    return 0;
-}
-
-void sys_arch_unprotect(sys_prot_t pval)
-{
-    (void)pval;
-    
-    if (lwip_mutex_count)
-    {
-        lwip_mutex_count--;
-        if (!lwip_mutex_count)
-        {
-            mutex_exit(&lwip_mutex);
-        }
-    }
-}
-
-uint32_t sys_now(void)
-{
-    return to_ms_since_boot( get_absolute_time() );
-}
