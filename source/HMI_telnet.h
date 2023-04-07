@@ -22,8 +22,8 @@
 #include "W5500.h"
 #include "global_variables.h"
 
-#define HMI_printf(param, ...) sprintf (HMI_out_str, param, ##__VA_ARGS__);\
-	HMI_printf_detail();
+#define HMI_printf(param, ...) snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
+	HMI_printf_detail(HMI_out_str);
 
 int telnet_loop(W5500_chip* W5500);
 
@@ -61,6 +61,6 @@ void HMI_print_who(void);
 
 void HMI_periodic_call(void);
 
-void HMI_printf_detail (void);
+void HMI_printf_detail (const char *str);
 
 #endif

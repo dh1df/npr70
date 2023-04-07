@@ -290,6 +290,11 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			else if (strcmp(loc_param1_str, "DHCP_ARP") == 0) {//display DHCP_ARP entries
 				DHCP_ARP_print_entries();
 			}
+#ifdef HAVE_DISPLAY_NET
+			else if (strcmp(loc_param1_str, "net") == 0) {//display network status
+				net_display();
+			}
+#endif
 			else {
 				HMI_printf("unknown display command\r\nready> ");
 			}
@@ -342,11 +347,15 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 		}
 		if (strcmp(loc_command_str, "help") == 0) {
 			command_understood = 1;
-			HMI_printf(
+			HMI_printf_detail(
 					"radio on|off\r\n"
 					"TX_test secs\r\n"
 					"status\r\n"
-					"display config|static|DHCP_ARP\r\n"
+					"display config|static|DHCP_ARP"
+#ifdef HAVE_DISPLAY_NET
+					"|net"
+#endif
+					"\r\n"
 					"set var val\r\n"
 					"who\r\n"
 					"reboot\r\n"
@@ -357,9 +366,17 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 					"reset_to_default\r\n"
 					"version\r\n"
 					"exit\r\n"
+#ifdef HAVE_CMD_TEST
+					"test\r\n"
+#endif
 					"help\r\n"
 					"ready> "
 			);
+		}
+		else if (strcmp(loc_command_str, "test") == 0) {
+			cmd_test(loc_param1_str, loc_param2_str);
+			command_understood = 1;	
+			HMI_printf("OK\r\nready> ");
 		}
 		if (command_understood == 0) {
 			HMI_printf("unknown command\r\nready> ");
@@ -796,7 +813,13 @@ void HMI_set_command(char* loc_param1, char* loc_param2) {
 			HMI_printf("unknown config param\r\nready> ");
 		}
 	} else {
-		HMI_printf("set command requires 2 param\r\nready> ");
+		HMI_printf_detail("set command requires 2 param\r\n"
+			   "set callsign|is_master|telnet_active|telnet_routed|DNS_active value\r\n"
+		           "set def_route_active|master_FDD|radio_on_at_start|DHCP_active value\r\n"
+			   "set modem_IP|netmask|def_route_val|DNS_value|IP_begin value\r\n"
+			   "set master_down_IP|master_IP_size|client_req_size|frequency value\r\n"
+			   "set freq_shift|RF_power|modulation|radio_netw_ID value\r\n"
+			   "ready> ");
 	}
 }
 
@@ -959,14 +982,14 @@ void HMI_periodic_call (void) {
 	}
 }
 
-void HMI_printf_detail (void) {
+void HMI_printf_detail (const char *str) {
 	int size;
 	if (is_telnet_opened) {
-		size = strlen (HMI_out_str);
-		W5500_write_TX_buffer (W5500_p1, TELNET_SOCKET, (unsigned char*)HMI_out_str, size, 0);
+		size = strlen (str);
+		W5500_write_TX_buffer (W5500_p1, TELNET_SOCKET, (unsigned char*)str, size, 0);
 	}
 	else {
-		printf("%s", HMI_out_str);
+		printf("%s", str);
 		fflush(stdout);
 	}
 }
