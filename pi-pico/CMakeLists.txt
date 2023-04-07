@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
+set(PICO_BOARD pico_w)
 include(pico-sdk/pico_sdk_init.cmake)
 project(npr70)
 pico_sdk_init()
@@ -16,6 +17,7 @@ set(ENC28J60_SOURCES
     ${ENC28J60_DIR}/enc28j60driver/enc28j60.c
     ${ENC28J60_DIR}/lwip/netif/mchdrv.c
 )
+set_source_files_properties(${ENC28J60_SOURCES} PROPERTIES COMPILE_DEFINITIONS bool=uint8_t)
 
 set(TINYUSB_LIBNETWORKING_SOURCES
     ${PICO_SDK_PATH}/lib/tinyusb/lib/networking/dhserver.c
@@ -26,7 +28,7 @@ set(TINYUSB_LIBNETWORKING_SOURCES
 add_subdirectory(littlefs-lib)
 
 add_executable(${PROJECT_NAME} npr70.cpp tusb_lwip_glue.c usb_descriptors.c ../source/HMI_telnet.cpp ../source/global_variables.cpp ../source/Eth_IPv4.cpp W5500_lwip.cpp RADIO.cpp misc.cpp ${ENC28J60_SOURCES} enchw.c ${TINYUSB_LIBNETWORKING_SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" bool=uint8_t)
+target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\")
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
