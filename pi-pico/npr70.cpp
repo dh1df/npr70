@@ -115,6 +115,10 @@ cmd_test(char *s1, char *s2)
 			debug("init_wifi()\r\n");
 			init_wifi();
 		}
+		if (!strcmp(s1,"3")) {
+			debug("bridge_setup()\r\n");
+			bridge_setup();
+		}
 	}
 }
 

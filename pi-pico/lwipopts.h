@@ -62,6 +62,7 @@
 #define LWIP_SINGLE_NETIF               0
 #define LWIP_NETIF_HOSTNAME             1
 #define LWIP_DNS                        1
+#define LWIP_NUM_NETIF_CLIENT_DATA      1
 #define LWIP_RAND() ((u32_t)rand())
 
 #endif /* __LWIPOPTS_H__ */

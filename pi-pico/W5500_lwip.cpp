@@ -1,6 +1,9 @@
 #include "pico/stdlib.h"
 #include "pico/bootrom.h"
 #include "W5500_lwip.h"
+#include "netif/etharp.h"
+#include "netif/bridgeif.h"
+#include "common.h"
 #include "../source/HMI_telnet.h"
 
 #define LED_PIN     25
@@ -234,12 +237,45 @@ net_display(void)
 
 }
 
+static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
+{
+	debug("radio_linkoutput_fn\r\n");
+	return ERR_OK;
+}
+
+static err_t radio_output_fn(struct netif *netif, struct pbuf *p, const ip_addr_t *addr)
+{
+	return etharp_output(netif, p, addr);
+}
+
+static err_t radio_netif_init_cb(struct netif *netif)
+{
+	LWIP_ASSERT("netif != NULL", (netif != NULL));
+	netif->mtu = 1500;
+	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+	netif->state = NULL;
+	netif->name[0] = 'R';
+	netif->name[1] = 'D';
+	netif->linkoutput = radio_linkoutput_fn;
+	netif->output = radio_output_fn;
+	return ERR_OK;
+}
+
+static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 8, 1);
+static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
+static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 8, 2);
+static bridgeif_initdata_t mybridge_initdata = BRIDGEIF_INITDATA1(4, 512, 16, ETH_ADDR(0, 1, 2, 3, 4, 5));
+
+
 void
 bridge_setup(void)
 {
-#if 0
 	err_t err;
+	struct netif *netif;
 	err=bridgeif_init(&bridge);
 	debug("bridgeif_init %d\r\n",err);
-#endif
+	netif=netif_add_noaddr(&radio, NULL, radio_netif_init_cb, ip_input);
+	debug("radio %p\r\n",netif);
+	netif=netif_add(&bridge, &ipaddr, &netmask, &gateway, &mybridge_initdata, bridgeif_init, ip_input);
+	debug("bridge %p\r\n",netif);
 }
