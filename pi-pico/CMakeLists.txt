@@ -24,10 +24,18 @@ set(TINYUSB_LIBNETWORKING_SOURCES
     ${PICO_SDK_PATH}/lib/tinyusb/lib/networking/rndis_reports.c
 )
 
+set(NPR70_COMMON_SOURCES
+    ../source/HMI_telnet.cpp
+    ../source/global_variables.cpp
+    ../source/Eth_IPv4.cpp
+    ../source/config_flash.cpp
+)
+
+set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp RADIO.cpp misc.cpp enchw.c littlefs.c)
 
 add_subdirectory(littlefs-lib)
 
-add_executable(${PROJECT_NAME} npr70.cpp tusb_lwip_glue.c usb_descriptors.c ../source/HMI_telnet.cpp ../source/global_variables.cpp ../source/Eth_IPv4.cpp W5500_lwip.cpp RADIO.cpp misc.cpp ${ENC28J60_SOURCES} enchw.c ${TINYUSB_LIBNETWORKING_SOURCES})
+add_executable(${PROJECT_NAME} ${NPR70_PI_SOURCES} ${NPR70_COMMON_SOURCES} ${ENC28J60_SOURCES} ${TINYUSB_LIBNETWORKING_SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\")
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)

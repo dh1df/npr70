@@ -11,6 +11,8 @@
 #include "lwip/tcp.h"
 #include "W5500_lwip.h"
 #include "npr70piconfig.h"
+#include "../source/config_flash.h"
+#include "common.h"
 
 
 #define LED_PIN     25
@@ -104,13 +106,16 @@ extern "C" void test(void);
 void
 cmd_test(char *s1, char *s2)
 {
-#if 0
-	debug("enchw_init()\r\n");
-	enchw_init();
-#else
-	debug("init_wifi()\r\n");
-	init_wifi();
-#endif
+	if (s1) {
+		if (!strcmp(s1,"1")) {
+			debug("enchw_init()\r\n");
+			enchw_init();
+		}
+		if (!strcmp(s1,"2")) {
+			debug("init_wifi()\r\n");
+			init_wifi();
+		}
+	}
 }
 
 int main()
@@ -122,6 +127,11 @@ int main()
 #endif
 	debug("init_spi()\r\n");
 	init_spi();
+	debug("littlefs_init()\r\n");
+	littlefs_init();	
+	debug("NFPR_config_read()\r\n");
+	NFPR_config_read(NULL);
+	
 	
 
 #if 1

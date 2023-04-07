@@ -6,6 +6,7 @@
 #define LED_PIN     25
 
 struct W5500_channel W5500_channel[NR_SOCKETS];
+static struct netif bridge,radio;
 
 struct pbuf *
 W5500_dequeue(struct W5500_channel *c)
@@ -231,4 +232,14 @@ net_display(void)
 		netif=netif->next;
 	}
 
+}
+
+void
+bridge_setup(void)
+{
+#if 0
+	err_t err;
+	err=bridgeif_init(&bridge);
+	debug("bridgeif_init %d\r\n",err);
+#endif
 }

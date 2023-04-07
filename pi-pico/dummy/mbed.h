@@ -6,10 +6,15 @@
 extern "C" void debug(const char *str, ...);
 extern "C" void net_display(void);
 extern "C" void cmd_test(char *s1, char *s2);
+extern "C" unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
+extern "C" void virt_EEPROM_errase_all(void);
+extern "C" unsigned int virt_EEPROM_read(void *data);
 
 #define HAVE_CALL_BOOTLOADER 1
 #define HAVE_DISPLAY_NET 1
 #define HAVE_CMD_TEST 1
+#define HAVE_EXTERNAL_EEPROM_CONFIG 1
+#define SKIP_UNIMPLEMENTED 1
 
 
 #define SERIAL_TX 0

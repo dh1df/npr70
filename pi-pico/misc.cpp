@@ -35,15 +35,6 @@ void SI4463_TX_to_RX_transition(void)
 {
 }
 
-unsigned int NFPR_config_save(void)
-{
-	return 0;
-}
-
-void virt_EEPROM_errase_all(void)
-{
-}
-
 void DHCP_ARP_print_entries(void)
 {
 }
