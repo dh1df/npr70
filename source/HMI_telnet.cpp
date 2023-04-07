@@ -341,7 +341,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			command_understood = 1;
 			HMI_printf("firmware: %s\r\nfreq band: %s\r\nready> ", FW_VERSION, FREQ_BAND);
 		}
-		if (strcmp(loc_command_str, "exit") == 0) {
+		if (strcmp(loc_command_str, "exit") == 0 || strcmp(loc_command_str, "quit") == 0) {
 			command_understood = 1;
 			HMI_exit();
 		}
@@ -365,7 +365,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 					"save\r\n"
 					"reset_to_default\r\n"
 					"version\r\n"
-					"exit\r\n"
+					"exit|quit\r\n"
 #ifdef HAVE_CMD_TEST
 					"test\r\n"
 #endif
