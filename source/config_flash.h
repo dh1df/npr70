@@ -92,15 +92,18 @@ const npr_config NFPR_default_config {
 	.static_client_entries = {0}
 };
 
-unsigned int virt_EEPROM_read(npr_config* data);
 
 unsigned char NFPR_random_generator(AnalogIn* analog_pin);
 
+#ifndef HAVE_EXTERNAL_EEPROM_CONFIG
 unsigned int virt_EEPROM_write(npr_config* in_data, unsigned int previous_index);
+
+unsigned int virt_EEPROM_read(npr_config* data);
 
 void virt_EEPROM_errase_all(void);
 
 void virt_EEPROM_debug_read(void);
+#endif
 
 void apply_config_from_raw_string(npr_config* data_r);
 

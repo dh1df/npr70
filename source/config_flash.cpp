@@ -25,6 +25,7 @@
 static npr_config raw_config_data; // 256 bytes long
 static unsigned int config_index;
 
+#ifndef HAVE_EXTERNAL_EEPROM_CONFIG
 // Flash storage is organized in 16 banks of 256 bytes
 #define FLASH_SETTINGS_SIZE 256
 #define FLASH_BANKS      16
@@ -103,6 +104,8 @@ void virt_EEPROM_errase_all(void) {
 	my_loc_flash.deinit();
 }
 
+#endif
+
 // higher level functions
 
 void NFPR_config_read(AnalogIn* analog_pin) {
@@ -130,7 +133,11 @@ unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
 	int i;
 	random_8 = 0;
 	for (i=0; i<8; i++) {
+#ifndef SKIP_UNIMPLEMENTED
 		interm_random = analog_pin->read_u16();
+#else
+		interm_random = 126;
+#endif
 		interm_random = (interm_random & 0x10)>>4;
 		interm_random = (interm_random << i);
 		random_8 = random_8 + interm_random;
@@ -141,7 +148,7 @@ unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
 
 unsigned int NFPR_config_save(void) {
 	if ( (CONF_radio_my_callsign[0] == 0) || (CONF_radio_my_callsign[2] == 0) ) {
-		HMI_printf("ERROR : not yet configured\r\n");		
+		HMI_printf("ERROR : not yet configured %s\r\n",CONF_radio_my_callsign);		
 	} else {
 		write_config_to_raw_string(&raw_config_data);
 		config_index = virt_EEPROM_write (&raw_config_data, config_index);
@@ -212,10 +219,14 @@ void apply_config_from_raw_string(npr_config* data_r) {
 		
 	}
 	if ( (is_TDMA_master) && (CONF_master_FDD == 1) ) { // FDD Master down
+#ifndef SKIP_UNIMPLEMENTED
 		G_FDD_trig_pin->output();
+#endif
 	}
 	if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {// FDD master up
+#ifndef SKIP_UNIMPLEMENTED
 		G_FDD_trig_IRQ->rise(&TDMA_FDD_up_top_measure);
+#endif
 	}
 }
 
