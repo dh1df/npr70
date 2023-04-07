@@ -26,7 +26,7 @@ set(TINYUSB_LIBNETWORKING_SOURCES
 add_subdirectory(littlefs-lib)
 
 add_executable(${PROJECT_NAME} npr70.cpp tusb_lwip_glue.c usb_descriptors.c ../source/HMI_telnet.cpp ../source/global_variables.cpp ../source/Eth_IPv4.cpp W5500_lwip.cpp RADIO.cpp misc.cpp ${ENC28J60_SOURCES} enchw.c ${TINYUSB_LIBNETWORKING_SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\")
+target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" bool=uint8_t)
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)

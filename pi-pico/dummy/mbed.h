@@ -4,7 +4,13 @@
 #include "pico/stdlib.h"
 
 extern "C" void debug(const char *str, ...);
+extern "C" void net_display(void);
+extern "C" void cmd_test(char *s1, char *s2);
+
 #define HAVE_CALL_BOOTLOADER 1
+#define HAVE_DISPLAY_NET 1
+#define HAVE_CMD_TEST 1
+
 
 #define SERIAL_TX 0
 #define SERIAL_RX 0

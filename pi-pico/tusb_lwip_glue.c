@@ -104,7 +104,7 @@ static err_t netif_init_cb(struct netif *netif)
     return ERR_OK;
 }
 
-void init_lwip(void)
+void tud_setup(void)
 {
     struct netif *netif = &netif_data;
     
@@ -116,10 +116,7 @@ void init_lwip(void)
     
     /* Initialize tinyUSB */
     tusb_init();
-    
-    /* Initialize lwip */
-    lwip_init();
-    
+   
     /* the lwip virtual MAC address must be different from the host's; to ensure this, we toggle the LSbit */
     netif->hwaddr_len = sizeof(tud_network_mac_address);
     memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));

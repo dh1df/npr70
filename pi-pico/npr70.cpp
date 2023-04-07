@@ -77,10 +77,6 @@ int
 init_wifi(void)
 {
 	debug("cyw43_arch_init()\r\n");
-	if (cyw43_arch_init()) {
-		printf("failed to initialise\n");
-		return 1;
-	}
 	debug("cyw43_arch_enable_sta_mode()\r\n");
 	cyw43_arch_enable_sta_mode();
 	// this seems to be the best be can do using the predefined `cyw43_pm_value` macro:
@@ -89,7 +85,7 @@ init_wifi(void)
 	cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
 
 	debug("Connecting to WiFi...\r\n");
-	if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
+	if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 1500)) {
 		debug("failed to connect.\r\n");
 		return 1;
 	} else {
@@ -106,7 +102,7 @@ extern "C" void enchw_init(void);
 extern "C" void test(void);
 
 void
-test(void)
+cmd_test(char *s1, char *s2)
 {
 #if 0
 	debug("enchw_init()\r\n");
@@ -128,8 +124,15 @@ int main()
 	init_spi();
 	
 
+#if 1
 	// Initialize tinyusb, lwip, dhcpd and httpd
-	init_lwip();
+	if (cyw43_arch_init()) {
+		printf("failed to initialise\n");
+	}
+#else
+	lwip_init();
+#endif
+	tud_setup();
 	wait_for_netif_is_up();
 	dhcpd_init();
 
@@ -143,6 +146,9 @@ int main()
 		tud_task();
 		service_traffic();
 		misc_loop();
+#if 1
+		cyw43_arch_poll();
+#endif
 	}
 
 	return 0;

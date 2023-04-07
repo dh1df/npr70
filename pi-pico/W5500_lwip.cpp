@@ -1,7 +1,7 @@
 #include "pico/stdlib.h"
 #include "pico/bootrom.h"
 #include "W5500_lwip.h"
-#include "../source/W5500.h"
+#include "../source/HMI_telnet.h"
 
 #define LED_PIN     25
 
@@ -215,4 +215,20 @@ W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 {
 	struct W5500_channel *c=&W5500_channel[sock_nb];
 	return W5500_next_size(c);
+}
+
+void
+net_display(void)
+{
+	struct netif *netif=netif_list;
+	u32_t ip_addr;
+	while (netif) {
+		HMI_printf("%p %s %d ",netif,netif->name,netif->num);
+		ip_addr=netif->ip_addr.addr;
+		HMI_printf("%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		ip_addr=netif->netmask.addr;
+		HMI_printf("%lu.%lu.%lu.%lu\r\n", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		netif=netif->next;
+	}
+
 }
