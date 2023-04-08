@@ -1,6 +1,7 @@
 #include "lwip/opt.h"
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
+#include "lwip/udp.h"
 #include "../source/W5500.h"
 
 #define NR_SOCKETS 16

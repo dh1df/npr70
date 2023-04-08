@@ -52,7 +52,11 @@ W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 {
 	err_t err = ERR_OK;
 	if (c->udp) {
-		err = udp_sendto(c->udp);
+		struct pbuf *pbuf=pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
+		memcpy(pbuf->payload, buffer, len);
+		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &bridge);
+		debug("udp_sendto %d %d\r\n",pbuf->len,err);
+		pbuf_free(pbuf);
 	} else {
 		err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
 		if (!err) {
@@ -399,9 +403,9 @@ static err_t radio_netif_init_cb(struct netif *netif)
 	return ERR_OK;
 }
 
-static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 8, 1);
+static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 0, 253);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
-static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 8, 2);
+static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 0, 65);
 static bridgeif_initdata_t mybridge_initdata = BRIDGEIF_INITDATA1(4, 512, 16, ETH_ADDR(0, 1, 2, 3, 4, 5));
 extern struct netif netif_data;
 
