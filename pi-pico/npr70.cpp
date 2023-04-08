@@ -19,8 +19,6 @@
 
 err_t error;
 
-struct tcp_pcb *testpcb;
-
 void debug(const char *str, ...)
 {
 	va_list ap;
@@ -39,25 +37,42 @@ void debug(const char *str, ...)
 void tcp_setup(void)
 {
 	err_t err;
-
+	struct W5500_channel *c;
 	gpio_put(LED_PIN, 1);
 
-	/* create the control block */
-	testpcb = tcp_new();	//testpcb is a global struct tcp_pcb
-	// as defined by lwIP
-
-
-
-	err = tcp_bind(testpcb, IP_ANY_TYPE, 23);
+	c=W5500_chan(TELNET_SOCKET);
+	err=c?ERR_OK:ERR_ARG;
 	if (err == ERR_OK) {
-		testpcb = tcp_listen(testpcb);
-		int s = TELNET_SOCKET;
-		tcp_arg(testpcb, W5500_chan(s));
-		tcp_accept(testpcb, W5500_accept);
-	} else {
-		/* abort? output diagnostic? */
+		c->tcp=tcp_new();
+		if (!c->tcp)
+			err=ERR_MEM;
 	}
+	if (err == ERR_OK)
+		err = tcp_bind(c->tcp, IP_ANY_TYPE, 23);
+	if (err == ERR_OK) {
+		c->tcp=tcp_listen(c->tcp);
+		if (!c->tcp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK) {
+		tcp_arg(c->tcp, c);
+		tcp_accept(c->tcp, W5500_accept);
+	}
+	debug("telnet %d\r\n",err);
 
+	c=W5500_chan(DHCP_SOCKET);
+	err=c?ERR_OK:ERR_ARG;
+	if (err == ERR_OK) {
+		c->udp=udp_new();
+		if (!c->udp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK)
+		err=udp_bind(c->udp, IP_ANY_TYPE, 67);
+	if (err == ERR_OK) 
+		udp_recv(c->udp, W5500_udp_recv, c);
+	debug("dhcp %d\r\n", err);	
+	
 
 }
 

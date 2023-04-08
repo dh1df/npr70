@@ -51,9 +51,13 @@ err_t
 W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 {
 	err_t err = ERR_OK;
-	err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
-	if (!err) {
-		err=tcp_output(c->conn);
+	if (c->udp) {
+		err = udp_sendto(c->udp);
+	} else {
+		err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
+		if (!err) {
+			err=tcp_output(c->conn);
+		}
 	}
 	return err;
 }
@@ -138,6 +142,14 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
   	return ERR_OK;
 }
 
+void W5500_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
+{
+	struct W5500_channel *c=(struct W5500_channel *)arg;
+	debug("W5500_udp_recv %p %d\r\n",c,p->len);
+	if (c && p->len && p->payload) {
+		W5500_enqueue(c, (unsigned char *)p->payload, p->len);
+	}
+}
 
 uint8_t
 W5500_read_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bloc_addr)
@@ -204,8 +216,10 @@ W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* dat
 	W5500_transmit(c);
 #endif
 #else
-	fwrite(data, size, 1, stdout);
-	fflush(stdout);
+	if (sock_nb == TELNET_SOCKET) {
+		fwrite(data, size, 1, stdout);
+		fflush(stdout);
+	}
 	W5500_transmit(c, data, size);
 #endif
 }
@@ -230,6 +244,35 @@ W5500_read_RX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, uint8_t* data, int 
 		memcpy(data+hlen, p->payload, size);
                 pbuf_free(p);
 	}
+}
+
+uint32_t
+W5500_read_UDP_pckt(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data, uint32_t size)
+{
+	struct W5500_channel *c=W5500_chan(sock_nb);
+	if (!c)
+		return 0;
+	struct pbuf *p=W5500_dequeue(c);
+#if 0
+	debug("read_RX %p %d\r\n",p,size);
+#endif
+	if (p) {
+		int hlen=8;
+		if (size > p->len+hlen || size == 0)
+			size=p->len+hlen;
+		data[0]=0;
+		data[1]=0;
+		data[2]=0;
+		data[3]=0;
+		data[4]=0;
+		data[5]=0;
+		data[6]=0;
+		data[7]=0;
+		memcpy(data+hlen, p->payload, size);
+                pbuf_free(p);
+		return size+hlen;
+	} else
+		return 0;
 }
 
 uint16_t

@@ -1,6 +1,7 @@
 #include "pico/bootrom.h"
 #include "hardware/watchdog.h"
 #include "../source/HMI_telnet.h"
+#include "../source/DHCP_ARP.h"
 
 void NVIC_SystemReset(void)
 { 
@@ -16,6 +17,7 @@ void misc_loop(void)
 {
 	telnet_loop(NULL); 
 	serial_term_loop();
+	DHCP_server(&LAN_conf_applied, W5500_p1);
 }
 
 void TDMA_init_all(void)
