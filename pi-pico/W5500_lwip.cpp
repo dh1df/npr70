@@ -55,7 +55,6 @@ W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 		struct pbuf *pbuf=pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
 		memcpy(pbuf->payload, buffer, len);
 		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &bridge);
-		debug("udp_sendto %d %d\r\n",pbuf->len,err);
 		pbuf_free(pbuf);
 	} else {
 		err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
@@ -149,7 +148,6 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 void W5500_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
 	struct W5500_channel *c=(struct W5500_channel *)arg;
-	debug("W5500_udp_recv %p %d\r\n",c,p->len);
 	if (c && p->len && p->payload) {
 		W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	}

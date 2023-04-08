@@ -142,7 +142,6 @@ void tud_network_init_cb(void)
 
 bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
 {
-    debug("tud_network_recv_cb\r\n");
     /* this shouldn't happen, but if we get another packet before 
     parsing the previous, we must signal our inability to accept it */
     if (received_frame) return false;
