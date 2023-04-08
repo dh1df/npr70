@@ -52,7 +52,7 @@ void tcp_setup(void)
 	if (err == ERR_OK) {
 		testpcb = tcp_listen(testpcb);
 		int s = TELNET_SOCKET;
-		tcp_arg(testpcb, &W5500_channel[s]);
+		tcp_arg(testpcb, W5500_chan(s));
 		tcp_accept(testpcb, W5500_accept);
 	} else {
 		/* abort? output diagnostic? */
@@ -147,8 +147,11 @@ int main()
 	lwip_init();
 #endif
 	tud_setup();
+	bridge_setup();
+#if 0
 	wait_for_netif_is_up();
 	dhcpd_init();
+#endif
 
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);

@@ -26,6 +26,7 @@ set(TINYUSB_LIBNETWORKING_SOURCES
 
 set(NPR70_COMMON_SOURCES
     ../source/HMI_telnet.cpp
+    ../source/DHCP_ARP.cpp
     ../source/global_variables.cpp
     ../source/Eth_IPv4.cpp
     ../source/config_flash.cpp

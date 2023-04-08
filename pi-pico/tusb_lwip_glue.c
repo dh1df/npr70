@@ -95,7 +95,7 @@ static err_t netif_init_cb(struct netif *netif)
 {
     LWIP_ASSERT("netif != NULL", (netif != NULL));
     netif->mtu = CFG_TUD_NET_MTU;
-    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
     netif->state = NULL;
     netif->name[0] = 'E';
     netif->name[1] = 'X';
@@ -121,9 +121,13 @@ void tud_setup(void)
     netif->hwaddr_len = sizeof(tud_network_mac_address);
     memcpy(netif->hwaddr, tud_network_mac_address, sizeof(tud_network_mac_address));
     netif->hwaddr[5] ^= 0x01;
-    
+   
+#if 0 
     netif = netif_add(netif, &ipaddr, &netmask, &gateway, NULL, netif_init_cb, ip_input);
     netif_set_default(netif);
+#else
+    netif = netif_add_noaddr(netif, NULL, netif_init_cb, ip_input);
+#endif
 }
 
 void tud_network_init_cb(void)
@@ -138,6 +142,7 @@ void tud_network_init_cb(void)
 
 bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
 {
+    debug("tud_network_recv_cb\r\n");
     /* this shouldn't happen, but if we get another packet before 
     parsing the previous, we must signal our inability to accept it */
     if (received_frame) return false;
@@ -184,7 +189,7 @@ void service_traffic(void)
     /* handle any packet received by tud_network_recv_cb() */
     if (received_frame)
     {
-      ethernet_input(received_frame, &netif_data);
+      netif_data.input(received_frame, &netif_data);
       pbuf_free(received_frame);
       received_frame = NULL;
       tud_network_recv_renew();
@@ -195,11 +200,15 @@ void service_traffic(void)
 
 void dhcpd_init()
 {
-    while (dhserv_init(&dhcp_config) != ERR_OK);    
+#if 0
+    while (dhserv_init(&dhcp_config) != ERR_OK);
+#endif
 }
 
 void wait_for_netif_is_up()
 {
+#if 0
     while (!netif_is_up(&netif_data));    
+#endif
 }
 

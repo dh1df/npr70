@@ -35,10 +35,6 @@ void SI4463_TX_to_RX_transition(void)
 {
 }
 
-void DHCP_ARP_print_entries(void)
-{
-}
-
 int SI4463_set_power(SI4463_Chip* SI4463)
 {
 	return 0;

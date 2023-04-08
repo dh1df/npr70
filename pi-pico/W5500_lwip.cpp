@@ -8,8 +8,14 @@
 
 #define LED_PIN     25
 
-struct W5500_channel W5500_channel[NR_SOCKETS];
+struct W5500_channel W5500_channelx[NR_SOCKETS];
 static struct netif bridge,radio;
+
+struct W5500_channel *
+W5500_chan(int idx)
+{
+	return &W5500_channelx[idx];
+}
 
 struct pbuf *
 W5500_dequeue(struct W5500_channel *c)
@@ -136,7 +142,10 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 uint8_t
 W5500_read_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bloc_addr)
 {
-	struct W5500_channel *c=&W5500_channel[bloc_addr];
+	struct W5500_channel *c=W5500_chan(bloc_addr);
+
+	if (!c)
+		return 0;
 
 	switch(W5500_addr) {
 	case W5500_Sn_SR:
@@ -148,7 +157,10 @@ W5500_read_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bl
 void
 W5500_write_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bloc_addr, unsigned char data)
 {
-	struct W5500_channel *c=&W5500_channel[bloc_addr];
+	struct W5500_channel *c=W5500_chan(bloc_addr);
+
+	if (!c)
+		return;
 	switch(W5500_addr) {
 	case W5500_Sn_CR:
 		if (data == 8 || data == 0x10) {
@@ -162,7 +174,9 @@ W5500_write_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char b
 void
 W5500_read_long(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bloc_addr, unsigned char* RX_data, int RX_size)
 {
-	struct W5500_channel *c=&W5500_channel[bloc_addr];
+	struct W5500_channel *c=W5500_chan(bloc_addr);
+	if (!c)
+		return;
 	switch(W5500_addr) {
 	case W5500_Sn_DIPR0:
 		if (RX_size == 7) {
@@ -181,7 +195,9 @@ W5500_read_long(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bl
 void
 W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data, int size, int send_mac) 
 {
-	struct W5500_channel *c=&W5500_channel[sock_nb];
+	struct W5500_channel *c=W5500_chan(sock_nb);
+	if (!c)
+		return;
 #if 0
 	W5500_enqueue(c, TX, data, size);
 #if 1
@@ -197,7 +213,9 @@ W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* dat
 void
 W5500_read_RX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, uint8_t* data, int size)
 {
-	struct W5500_channel *c=&W5500_channel[sock_nb];
+	struct W5500_channel *c=W5500_chan(sock_nb);
+	if (!c)
+		return;
 	struct pbuf *p=W5500_dequeue(c);
 #if 0
 	debug("read_RX %p %d\r\n",p,size);
@@ -217,7 +235,9 @@ W5500_read_RX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, uint8_t* data, int 
 uint16_t
 W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 {
-	struct W5500_channel *c=&W5500_channel[sock_nb];
+	struct W5500_channel *c=W5500_chan(sock_nb);
+	if (!c)
+		return 0;
 	return W5500_next_size(c);
 }
 
@@ -227,32 +247,107 @@ net_display(void)
 	struct netif *netif=netif_list;
 	u32_t ip_addr;
 	while (netif) {
+		unsigned char *h=netif->hwaddr;
 		HMI_printf("%p %s %d ",netif,netif->name,netif->num);
+		if (netif->flags & NETIF_FLAG_UP) {
+			HMI_printf("UP ");
+		}
+		if (netif->flags & NETIF_FLAG_LINK_UP) {
+			HMI_printf("LINK_UP ");
+		}
+		if (netif->flags & NETIF_FLAG_ETHARP) {
+			HMI_printf("ETHARP ");
+		}
+		if (netif->flags & NETIF_FLAG_ETHERNET) {
+			HMI_printf("ETHERNET ");
+		}
 		ip_addr=netif->ip_addr.addr;
 		HMI_printf("%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
 		ip_addr=netif->netmask.addr;
-		HMI_printf("%lu.%lu.%lu.%lu\r\n", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_printf("%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_printf("%d %02x:%02x:%02x:%02x:%02x:%02x\r\n", netif->hwaddr_len, h[0], h[1], h[2], h[3], h[4], h[5]);
+		
 		netif=netif->next;
 	}
 
 }
 
+void
+debug_mac(unsigned char *h)
+{
+	debug("%02x:%02x:%02x:%02x:%02x:%02x", h[0], h[1], h[2], h[3], h[4], h[5]);
+}
+
+void
+debug_ip(u32_t ip_addr)
+{
+	debug("%lu.%lu.%lu.%lu", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
+}
+
+void
+debug_udp(unsigned char *d)
+{
+	debug("%02x%02x %02x%02x",d[0],d[1],d[2],d[3]);
+}
+
+void
+debug_iph(unsigned char *d)
+{
+	int ihl=4;
+	debug("%d.%d.%d.%d",d[12],d[13],d[14],d[15]);
+	debug(" ");
+	debug("%d.%d.%d.%d",d[16],d[17],d[18],d[19]);
+	debug(" %02x ",d[9]);
+	if (d[9] == 17) {
+		debug_udp(d+ihl*5);
+	}
+}
+
+void
+debug_pbuf(const char *id, struct pbuf *p)
+{
+	unsigned char *d=(unsigned char *)p->payload;
+	unsigned int e=(d[12]<<8)+d[13];
+	debug("%s(%d) ",id,p->len);
+	debug_mac(d);
+	debug(" ");
+	debug_mac(d+6);
+	debug(" %04x ",e);
+	if (e == 0x800) {
+		debug_iph(d+14);
+	}
+	debug("\r\n");
+}
+
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
-	debug("radio_linkoutput_fn\r\n");
+#if 0
+	debug_pbuf("radio_out",p);
+#else
+	debug("radio_out\r\n");
+#endif
 	return ERR_OK;
 }
 
 static err_t radio_output_fn(struct netif *netif, struct pbuf *p, const ip_addr_t *addr)
 {
+	debug("radio_output_fn\r\n");
 	return etharp_output(netif, p, addr);
 }
 
 static err_t radio_netif_init_cb(struct netif *netif)
 {
 	LWIP_ASSERT("netif != NULL", (netif != NULL));
+	debug("radio_netif_init_cb\r\n");
 	netif->mtu = 1500;
-	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+	netif->hwaddr_len = 6;
+	netif->hwaddr[0]=0x1;
+	netif->hwaddr[1]=0x2;
+	netif->hwaddr[2]=0x3;
+	netif->hwaddr[3]=0x4;
+	netif->hwaddr[4]=0x5;
+	netif->hwaddr[5]=0x7;
+	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	netif->state = NULL;
 	netif->name[0] = 'R';
 	netif->name[1] = 'D';
@@ -265,17 +360,20 @@ static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 8, 1);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
 static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 8, 2);
 static bridgeif_initdata_t mybridge_initdata = BRIDGEIF_INITDATA1(4, 512, 16, ETH_ADDR(0, 1, 2, 3, 4, 5));
-
+extern struct netif netif_data;
 
 void
 bridge_setup(void)
 {
 	err_t err;
 	struct netif *netif;
-	err=bridgeif_init(&bridge);
-	debug("bridgeif_init %d\r\n",err);
 	netif=netif_add_noaddr(&radio, NULL, radio_netif_init_cb, ip_input);
 	debug("radio %p\r\n",netif);
-	netif=netif_add(&bridge, &ipaddr, &netmask, &gateway, &mybridge_initdata, bridgeif_init, ip_input);
+	netif=netif_add(&bridge, &ipaddr, &netmask, &gateway, &mybridge_initdata, bridgeif_init, ethernet_input);
 	debug("bridge %p\r\n",netif);
+	err=bridgeif_add_port(&bridge, &radio);
+	debug("bridge add radio %d\r\n",err);
+	err=bridgeif_add_port(&bridge, &netif_data);
+	debug("bridge add usb %d\r\n",err);
+	bridge.flags |= NETIF_FLAG_UP;
 }

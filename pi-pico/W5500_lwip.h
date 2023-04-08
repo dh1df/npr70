@@ -7,9 +7,10 @@
 extern struct W5500_channel {
 	struct tcp_pcb *conn;
 	struct pbuf *pbuf;
-} W5500_channel[NR_SOCKETS];
+} W5500_channelx[NR_SOCKETS];
 
 struct pbuf *W5500_dequeue(struct W5500_channel *c);
 void W5500_enqueue(struct W5500_channel *c, unsigned char *data, int size);
 err_t W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len);
 err_t W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
+struct W5500_channel *W5500_chan(int idx);
