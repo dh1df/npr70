@@ -394,8 +394,8 @@ static err_t radio_netif_init_cb(struct netif *netif)
 	netif->hwaddr[5]=0x7;
 	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	netif->state = NULL;
-	netif->name[0] = 'R';
-	netif->name[1] = 'D';
+	netif->name[0] = 'r';
+	netif->name[1] = 'd';
 	netif->linkoutput = radio_linkoutput_fn;
 	netif->output = radio_output_fn;
 	return ERR_OK;

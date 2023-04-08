@@ -59,6 +59,7 @@ void tcp_setup(void)
 		tcp_accept(c->tcp, W5500_accept);
 	}
 	debug("telnet %d\r\n",err);
+#if 0
 
 	c=W5500_chan(DHCP_SOCKET);
 	err=c?ERR_OK:ERR_ARG;
@@ -71,7 +72,8 @@ void tcp_setup(void)
 		err=udp_bind(c->udp, IP_ANY_TYPE, 67);
 	if (err == ERR_OK) 
 		udp_recv(c->udp, W5500_udp_recv, c);
-	debug("dhcp %d\r\n", err);	
+	debug("dhcp %d\r\n", err);
+#endif
 	
 
 }
@@ -101,6 +103,7 @@ init_wifi(void)
 	// however it doesn't use the `CYW43_NO_POWERSAVE_MODE` value, so we do this instead:
 	cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
 
+#if 0
 	debug("Connecting to WiFi...\r\n");
 	if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 1500)) {
 		debug("failed to connect.\r\n");
@@ -113,6 +116,14 @@ init_wifi(void)
 		debug("IP Address: %lu.%lu.%lu.%lu\r\n", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
 		return 0;
 	}
+#else
+	if (cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK)) {
+		debug("failed wifi connect\r\n");
+	} else {
+		debug("wifi connecting\r\n");
+	}
+	return 0;
+#endif
 }
 
 extern "C" void enchw_init(void);
@@ -121,6 +132,7 @@ extern "C" void test(void);
 void
 cmd_test(char *s1, char *s2)
 {
+#if 0
 	if (s1) {
 		if (!strcmp(s1,"1")) {
 			debug("enchw_init()\r\n");
@@ -135,6 +147,7 @@ cmd_test(char *s1, char *s2)
 			bridge_setup();
 		}
 	}
+#endif
 }
 
 int main()
@@ -162,6 +175,8 @@ int main()
 	lwip_init();
 #endif
 	tud_setup();
+	enchw_init();
+	init_wifi();
 	bridge_setup();
 #if 0
 	wait_for_netif_is_up();
@@ -181,6 +196,7 @@ int main()
 #if 1
 		cyw43_arch_poll();
 #endif
+		enchw_poll();
 	}
 
 	return 0;

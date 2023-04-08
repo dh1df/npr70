@@ -5,25 +5,35 @@
 #include "hardware/spi.h"
 #include "lwip/init.h"
 #include "lwip/ip.h"
-#include <netif/etharp.h>
+#include "netif/etharp.h"
 #include "netif/mchdrv.h"
+#include "common.h"
 
 static enc_device_t dev;
 
-struct netif netif_data;
+struct netif netif_data_eth;
 static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 6, 1);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
 static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 6, 2);
 
+
+void enchw_poll(void)
+{
+	mchdrv_poll(&netif_data_eth);	
+}
 
 void enchw_init(void)
 {
 #if 0
 	debug("enc_setup_basic %d\r\n",enc_setup_basic(&dev));
 	debug("enc_bist_manual %d\r\n",enc_bist_manual(&dev));
+	return 0;
 #endif
-	struct netif *netif=&netif_data;
+	struct netif *netif=&netif_data_eth;
+	netif->name[0] = 'e';
+        netif->name[1] = 'n';
 	netif = netif_add(netif, &ipaddr, &netmask, &gateway, NULL, mchdrv_init, ip_input);
+	netif->flags |= NETIF_FLAG_UP;
 }
 
 void enchw_setup(enchw_device_t *dev)
