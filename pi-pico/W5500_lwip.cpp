@@ -277,6 +277,7 @@ W5500_read_UDP_pckt(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data,
 		return 0;
 }
 
+
 uint16_t
 W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 {
@@ -317,6 +318,8 @@ net_display(void)
 
 }
 
+extern "C" {
+
 void
 debug_mac(unsigned char *h)
 {
@@ -336,6 +339,12 @@ debug_udp(unsigned char *d)
 }
 
 void
+debug_icmp(unsigned char *d)
+{
+	debug("%02x %02x %02x%02x %02x%02x",d[0],d[1],d[4],d[5],d[6],d[7]);
+}
+
+void
 debug_iph(unsigned char *d)
 {
 	int ihl=4;
@@ -343,10 +352,27 @@ debug_iph(unsigned char *d)
 	debug(" ");
 	debug("%d.%d.%d.%d",d[16],d[17],d[18],d[19]);
 	debug(" %02x ",d[9]);
+	if (d[9] == 1) {
+		debug_icmp(d+ihl*5);
+	}
 	if (d[9] == 17) {
 		debug_udp(d+ihl*5);
 	}
 }
+
+void
+debug_arp(unsigned char *d)
+{
+	debug("ARP %02x%02x %02x%02x %02x %02x %02x%02x ",d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7]);
+	debug_mac(d+8);
+	debug(" ");
+	debug("%d.%d.%d.%d",d[14],d[15],d[16],d[17]);
+	debug(" ");
+	debug_mac(d+18);
+	debug(" ");
+	debug("%d.%d.%d.%d",d[24],d[25],d[26],d[27]);
+	debug("\r\n");
+}	
 
 void
 debug_pbuf(const char *id, struct pbuf *p)
@@ -361,15 +387,21 @@ debug_pbuf(const char *id, struct pbuf *p)
 	if (e == 0x800) {
 		debug_iph(d+14);
 	}
+	if (e == 0x806) {
+		debug_arp(d+14);
+	}
 	debug("\r\n");
+}
 }
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
 #if 0
+#if 0
 	debug_pbuf("radio_out",p);
 #else
 	debug("radio_out\r\n");
+#endif
 #endif
 	return ERR_OK;
 }

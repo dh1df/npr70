@@ -32,8 +32,15 @@ void enchw_init(void)
 	struct netif *netif=&netif_data_eth;
 	netif->name[0] = 'e';
         netif->name[1] = 'n';
-	netif = netif_add(netif, &ipaddr, &netmask, &gateway, NULL, mchdrv_init, ip_input);
-	netif->flags |= NETIF_FLAG_UP;
+        netif->hwaddr_len = 6;
+        netif->hwaddr[0]=0xf8;
+        netif->hwaddr[1]=0x0b;
+        netif->hwaddr[2]=0x35;
+        netif->hwaddr[3]=0x6b;
+        netif->hwaddr[4]=0xd6;
+        netif->hwaddr[5]=0x6d;
+	netif = netif_add(netif, &ipaddr, &netmask, &gateway, &dev, mchdrv_init, ethernet_input);
+	netif->flags |= NETIF_FLAG_UP | NETIF_FLAG_ETHERNET;
 }
 
 void enchw_setup(enchw_device_t *dev)

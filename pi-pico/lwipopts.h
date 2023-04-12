@@ -68,8 +68,10 @@
 #if 0
 #define LWIP_DEBUG			1
 #define ETHARP_DEBUG			LWIP_DBG_TYPES_ON
+#if 0
 #define BRIDGEIF_FW_DEBUG               LWIP_DBG_TYPES_ON
 #define BRIDGEIF_DEBUG                  LWIP_DBG_TYPES_ON
+#endif
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #endif
 
