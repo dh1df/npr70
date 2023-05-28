@@ -30,9 +30,12 @@ set(NPR70_COMMON_SOURCES
     ../source/global_variables.cpp
     ../source/Eth_IPv4.cpp
     ../source/config_flash.cpp
+    ../source/SI4463.cpp
+    ../source/L1L2_radio.cpp
+    ../source/TDMA.cpp
 )
 
-set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp RADIO.cpp misc.cpp enchw.c littlefs.c)
+set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.c littlefs.c)
 
 add_subdirectory(littlefs-lib)
 
@@ -41,7 +44,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WI
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
-target_include_directories(${PROJECT_NAME} PRIVATE . dummy ${ENC28J60_DIR}/enc28j60driver ${ENC28J60_DIR}/lwip ${TUSB_INCLUDE} ${LWIP_INCLUDE})
+target_include_directories(${PROJECT_NAME} PRIVATE . compat ${ENC28J60_DIR}/enc28j60driver ${ENC28J60_DIR}/lwip ${TUSB_INCLUDE} ${LWIP_INCLUDE} ../source/SI4463)
 target_link_libraries(${PROJECT_NAME} pico_stdlib hardware_spi pico_unique_id pico_lwip pico_cyw43_arch_lwip_poll tinyusb_device littlefs-lib)
 pico_add_extra_outputs(${PROJECT_NAME})
 
