@@ -81,15 +81,15 @@ void tcp_setup(void)
 void
 init_spi(void)
 {
-	spi_init(SPI_PORT, 1 * 1000 * 1000);
-	gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
-	gpio_set_function(PIN_CS, GPIO_FUNC_SIO);
-	gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
-	gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
+	spi_init(spi0, 1 * 1000 * 1000);
+	gpio_set_function(SPI0_PIN_MISO, GPIO_FUNC_SPI);
+	gpio_set_function(SPI0_PIN_SCK, GPIO_FUNC_SPI);
+	gpio_set_function(SPI0_PIN_MOSI, GPIO_FUNC_SPI);
+	gpio_set_function(ENC_PIN_CS, GPIO_FUNC_SIO);
 
 	// Chip select is active-low, so we'll initialise it to a driven-high state
-	gpio_set_dir(PIN_CS, GPIO_OUT);
-	gpio_put(PIN_CS, 1);
+	gpio_set_dir(ENC_PIN_CS, GPIO_OUT);
+	gpio_put(ENC_PIN_CS, 1);
 }
 
 int

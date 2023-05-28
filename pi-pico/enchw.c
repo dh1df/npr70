@@ -51,14 +51,14 @@ void enchw_setup(enchw_device_t *dev)
 void enchw_select(enchw_device_t *dev)
 {
 	asm volatile("nop \n nop \n nop");
-	gpio_put(PIN_CS, 0);
+	gpio_put(ENC_PIN_CS, 0);
 	asm volatile("nop \n nop \n nop");
 }
 
 void enchw_unselect(enchw_device_t *dev)
 {
 	asm volatile("nop \n nop \n nop");
-	gpio_put(PIN_CS, 1);
+	gpio_put(ENC_PIN_CS, 1);
 	asm volatile("nop \n nop \n nop");
 }
 
@@ -66,7 +66,7 @@ uint8_t enchw_exchangebyte(enchw_device_t *dev, uint8_t data)
 {
 	uint8_t ret;
 	asm volatile("nop \n nop \n nop");
-	spi_write_read_blocking(SPI_PORT, &data, &ret, 1);
+	spi_write_read_blocking(ENC_PORT_SPI, &data, &ret, 1);
 	asm volatile("nop \n nop \n nop");
 #if 0
 	debug("enchw_exchangebyte %d %d\r\n",data, ret);
