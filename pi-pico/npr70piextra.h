@@ -3,6 +3,7 @@
 #define HAVE_CMD_TEST 1
 #define HAVE_EXTERNAL_EEPROM_CONFIG 1
 #define HAVE_CMD_FS 1
+#define HAVE_CMD_FLASH 1
 
 void debug(const char *str, ...);
 struct context;
@@ -12,6 +13,7 @@ int cmd_ls(struct context *c);
 int cmd_rm(struct context *c);
 int cmd_cat(struct context *c);
 int cmd_wget(struct context *c);
+int cmd_flash(struct context *c);
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
 void virt_EEPROM_errase_all(void);
 unsigned int virt_EEPROM_read(void *data);

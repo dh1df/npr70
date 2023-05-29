@@ -354,6 +354,11 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 		if (strcmp(loc_command_str, "cat") == 0) command_understood=cmd_cat(&ctx);
 		if (strcmp(loc_command_str, "wget") == 0) command_understood=cmd_wget(&ctx);
 #endif
+#ifdef HAVE_CMD_FLASH
+		if (strcmp(loc_command_str, "flash") == 0) {
+			command_understood=cmd_flash(&ctx);
+		}
+#endif
 #ifdef HAVE_CMD_TEST
 		if (strcmp(loc_command_str, "test") == 0) {
 			command_understood=cmd_test(&ctx);
@@ -388,6 +393,9 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 					"rm\r\n"
 					"cat\r\n"
 					"wget\r\n"
+#endif
+#ifdef HAVE_CMD_FLASH
+					"flash\r\n"
 #endif
 					"help\r\n"
 					"ready> "
