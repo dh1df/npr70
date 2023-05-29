@@ -34,6 +34,7 @@ class SPI {
   void * port;
 public:
   SPI(void * port);
+  SPI(void * port, int miso, int clk, int mosi);
   void transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int rx_len);
 };
 
@@ -79,11 +80,15 @@ public:
 
 // typedef int DigitalOut;
 class InterruptIn {
-   int pin;
+  int pin;
+  int event;
+  void (*func)(void);
 public:
   InterruptIn(int pin);
   int read(void);
   void rise(void (*func)(void));
+  void fall(void (*func)(void));
+  void trigger(void);
   operator int();
 };
 void NVIC_SystemReset(void);

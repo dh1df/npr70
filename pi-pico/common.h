@@ -1,5 +1,6 @@
 #ifdef __cplusplus
 extern "C" {
+extern InterruptIn Int_SI4463;
 #endif
 extern void debug(const char *str, ...);
 extern void littlefs_init(void);

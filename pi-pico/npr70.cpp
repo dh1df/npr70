@@ -14,6 +14,8 @@
 #include "../source/config_flash.h"
 #include "../source/SI4463.h"
 #include "../source/global_variables.h"
+#include "../source/TDMA.h"
+#include "../source/HMI_telnet.h"
 #include "mbed.h"
 #include "common.h"
 
@@ -22,9 +24,9 @@
 
 err_t error;
 
-static SPI spi_1(spi1);
+static SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
 static DigitalOut CS2(SI4463_PIN_CS);
-static InterruptIn Int_SI4463(SI4463_PIN_CS);
+InterruptIn Int_SI4463(SI4463_PIN_INT);
 static DigitalOut LED_RX_loc(LED_RX_PIN);
 static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
 static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
@@ -96,14 +98,6 @@ init_spi(void)
 	gpio_set_function(ENC_PIN_CS, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_CS, GPIO_OUT);
 	gpio_put(ENC_PIN_CS, 1);
-
-	gpio_set_function(SI4463_PIN_CS, GPIO_FUNC_SIO);
-	gpio_set_dir(SI4463_PIN_CS, GPIO_OUT);
-	gpio_put(SI4463_PIN_CS, 1);
-
-	gpio_set_function(SI4463_PIN_SDN, GPIO_FUNC_SIO);
-	gpio_set_dir(SI4463_PIN_SDN, GPIO_OUT);
-	gpio_put(SI4463_PIN_SDN, 1);
 
 	spi_init(spi0, 1 * 1000 * 1000);
 	gpio_set_function(SPI0_PIN_MISO, GPIO_FUNC_SPI);
@@ -201,6 +195,13 @@ cmd_test(struct context *ctx)
                 debug("SI4463 error while configure\r\n");
 	}
 	SI4463_print_version(G_SI4463);
+	RADIO_on(1, 1, 1);
+	SI4463_TX_to_RX_transition();
+	TDMA_NULL_frame_init(70);
+
+        SI4463_periodic_temperature_check(G_SI4463);
+        Int_SI4463.fall(&SI4463_HW_interrupt);
+
 #endif
 	return 3;
 }

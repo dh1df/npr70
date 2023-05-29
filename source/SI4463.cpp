@@ -698,6 +698,7 @@ void SI4463_RX_IT() {
 	int t_rehabilit_interrupt;
 	unsigned char clear_IT_PH;
 	unsigned char clear_IT_modem;
+	int irq = *(G_SI4463->interrupt);
 	
 	Treated_SYNC_detected = 0;
 	Treated_FIFO_almost_full = 0;
@@ -715,6 +716,7 @@ void SI4463_RX_IT() {
 		Synth_pckt_RX = IT_pckt_RX ^ Treated_pckt_RX;
 		
 		toto = *(G_SI4463->interrupt);
+		debug("rx int %02x %02x %d %d\r\n",FRR[0],FRR[1],irq,toto);
 		if (Synth_SYNC_detected) {//Sync detected
 			RSSI = FRR[2];
 			RX_timer = timer_snapshot - CONF_long_preamble_duration_for_TA;
