@@ -1,4 +1,5 @@
 #include "pico_hal.h"
+#include "pico/bootrom.h"
 #include "hardware/flash.h"
 #include "hardware/regs/addressmap.h"
 #include "hardware/sync.h"
@@ -6,48 +7,43 @@
 #include "npr70piextra.h"
 #include "common.h"
 
+#define FLASH_BLOCK_ERASE_CMD 0xd8
+
 extern const char* FS_BASE;
 extern struct lfs_config pico_cfg;
 
 static struct map {
-	const void *source;
+	const unsigned char *source;
 	int len;
 } map[512];
 
-static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int dst, int blocks)
+volatile static int step;
+static unsigned char flash_buffer[4096];
+
+static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int dst, int blocks, int block_size)
 {
-#if 0
-	rom_connect_internal_flash_fn connect_internal_flash = (rom_connect_internal_flash_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
-	rom_flash_exit_xip_fn flash_exit_xip = (rom_flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
-	rom_flash_range_program_fn flash_range_program = (rom_flash_range_program_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_PROGRAM);
-	rom_flash_flush_cache_fn flash_flush_cache = (rom_flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
-#endif
-	int idx=0;
-	flash_range_erase(dst, blocks);
-
-#if 0
-    __compiler_memory_barrier();
-
-    connect_internal_flash();
-    flash_exit_xip();
-    flash_range_program(flash_offs, data, count);
-    flash_flush_cache(); // Note this is needed to remove CSn IO force as well as cache flushing
-    flash_enable_xip_via_boot2();
-#endif
-#if 0
-		flash_range_program(4096, data, 4);
-#endif
-
-#if 1
+	int idx=0,pos=0;
+	step=1;
+	flash_range_erase(dst, blocks*block_size);
+	step=2;
 	while (idx < count) {
-		flash_range_program(dst, map[idx].source, map[idx].len);
-		dst+=map[idx].len;
+		int i,len=map[idx].len;
+		const unsigned char *source=map[idx].source;
+		for (i = 0 ; i < len ; i++) {
+			flash_buffer[pos++]=source[i];
+			if (pos >= block_size) {
+				flash_range_program(dst, flash_buffer, pos);
+				dst+=pos;
+				pos=0;
+			}
+		}
 		idx++;
-		break;
 	}
-#endif
+	while (pos < block_size)
+		flash_buffer[pos++]=0xff;
+	flash_range_program(dst, flash_buffer, pos);
+	step=3;
 	for(;;);
-	
 }
 
 int cmd_flash(struct context *ctx)
@@ -66,13 +62,13 @@ int cmd_flash(struct context *ctx)
 			size=total_size-pos;
 		map[idx].source=FS_BASE + XIP_NOCACHE_NOALLOC_BASE + (block * pico_cfg.block_size) + offset;
 		map[idx].len=size;
+                printf("%d %d %d %p %d\n",ret,block,offset, map[idx].source, size);
 		idx++;
-                printf("%d %d %d %d\n",ret,block,offset, size);
                 pos+=size;
         }
 
 	pico_close(fd);
 	save_and_disable_interrupts();
-	flash(map, idx, 512*1024, (total_size+pico_cfg.block_size-1)/pico_cfg.block_size);
+	flash(map, idx, 0, (total_size+pico_cfg.block_size-1)/pico_cfg.block_size, pico_cfg.block_size);
 	return 3;
 }
