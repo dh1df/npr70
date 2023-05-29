@@ -32,6 +32,8 @@ static SPI spi_0(spi0, SPI0_PIN_MISO, SPI0_PIN_SCK, SPI0_PIN_MOSI);
 static SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
 static DigitalOut CS2(SI4463_PIN_CS);
 InterruptIn Int_SI4463(SI4463_PIN_INT);
+
+static AnalogIn Random_pin(RANDOM_PIN);
 static DigitalOut LED_RX_loc(LED_RX_PIN);
 static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
 static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
@@ -185,7 +187,6 @@ cmd_test(struct context *ctx)
 	SI4463_print_version(G_SI4463);
 	RADIO_on(1, 1, 1);
 	SI4463_TX_to_RX_transition();
-	TDMA_NULL_frame_init(70);
 
         SI4463_periodic_temperature_check(G_SI4463);
         Int_SI4463.fall(&SI4463_HW_interrupt);
@@ -250,6 +251,51 @@ static void loop100(void)
 	}
 }
 
+static void
+init1(void)
+{
+	int i;
+	//SI4463_print_version(G_SI4463);//!!!!
+	SI4463_get_state(G_SI4463);
+
+	i = SI4463_configure_all();
+	if (i == 1) {
+		HMI_printf("SI4463 configured\r\n");
+        } else {
+                HMI_printf("SI4463 error while configure\r\n");
+                SI4463_print_version(G_SI4463);
+                // wait_ms(5000);
+                // if (serial_term_loop() == 0) {//no serial char detected
+                //        NVIC_SystemReset(); //reboot
+                // }
+        }
+
+#ifdef EXT_SRAM_USAGE
+        ext_SRAM_set_mode(SPI_SRAM_p);
+        wait_ms(2)
+        ext_SRAM_init();
+#endif
+
+	// W5500_initial_configure(W5500_p1);
+	wait_ms(2);
+#ifdef EXT_SRAM_USAGE
+	ext_SRAM_set_mode(SPI_SRAM_p);
+	wait_ms(2)
+	ext_SRAM_init();
+#endif
+	TDMA_NULL_frame_init(70);
+
+	SI4463_periodic_temperature_check(G_SI4463);
+	Int_SI4463.fall(&SI4463_HW_interrupt);
+	if (CONF_radio_default_state_ON_OFF) {
+		//TDMA_init_all();
+		//SI4463_radio_start();
+		RADIO_on(1, 0, 1);//init state, no reconfigure, HMI output
+        }
+	HMI_printf("ready> ");
+	slow_timer.start();
+}
+
 int main()
 {
 	is_SRAM_ext = 0;
@@ -263,7 +309,7 @@ int main()
 	debug("littlefs_init()\r\n");
 	littlefs_init();	
 	debug("NFPR_config_read()\r\n");
-	NFPR_config_read(NULL);
+	NFPR_config_read(&Random_pin);
 	
 	
 
@@ -287,17 +333,17 @@ int main()
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);
 
-	gpio_put(LED_PIN, 1);
 	tcp_setup();
+	gpio_put(LED_PIN, 1);
+
+	init1();
 
 	while (true) {
 		loop100();
 		tud_task();
 		service_traffic();
 		misc_loop();
-#if 1
 		cyw43_arch_poll();
-#endif
 		enchw_poll();
 	}
 

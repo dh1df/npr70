@@ -39,16 +39,21 @@ public:
 };
 
 class Timeout {
+   us_timestamp_t base;
+   us_timestamp_t interval;
 public:
    void attach_us (void (*func)(void), us_timestamp_t t);
 };
+
 class Timer {
-   int base;
+   us_timestamp_t base;
 public:
    Timer(void);
    void reset(void);
+   void start(void);
    int read_us(void);
 };
+
 class AnalogIn {
    int pin;
 public:

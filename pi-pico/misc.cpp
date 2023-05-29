@@ -59,7 +59,9 @@ void SPI::transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int
 
 void Timeout::attach_us (void (*func)(void), us_timestamp_t t)
 {
-        debug("attach_us\r\n");
+	base=time_us_32();
+	interval=t;
+        debug("attach_us %d %p\r\n",t,this);
 }
 
 Timer::Timer(void)
@@ -75,6 +77,11 @@ int Timer::read_us(void)
 void Timer::reset(void)
 {
 	base=time_us_32();
+}
+
+void Timer::start(void)
+{
+	reset();
 }
 
 DigitalInOut::DigitalInOut(int pin)
@@ -159,6 +166,11 @@ void InterruptIn::trigger()
 InterruptIn::operator int()
 {
 	return this->read();
+}
+
+AnalogIn::AnalogIn(int pin)
+{
+	this->pin=pin;
 }
 
 unsigned short AnalogIn::read_u16(void)

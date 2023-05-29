@@ -15,5 +15,6 @@
 #define GPIO_10_PIN 15
 
 #define LED_RX_PIN 22
+#define RANDOM_PIN 26
 #define ENC_PIN_INT 27
 
