@@ -22,8 +22,15 @@
 #include "W5500.h"
 #include "global_variables.h"
 
+struct context {
+  char *s1;
+  char *s2;
+};
+
 #define HMI_printf(param, ...) snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
 	HMI_printf_detail(HMI_out_str);
+
+#define HMI_cprintf(ctx, param, ...) HMI_printf(param, ##__VA_ARGS__)
 
 int telnet_loop(W5500_chip* W5500);
 

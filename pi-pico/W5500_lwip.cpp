@@ -287,14 +287,14 @@ W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 	return W5500_next_size(c);
 }
 
-void
-net_display(void)
+int
+cmd_display_net(struct context *ctx)
 {
 	struct netif *netif=netif_list;
 	u32_t ip_addr;
 	while (netif) {
 		unsigned char *h=netif->hwaddr;
-		HMI_printf("%p %s %d ",netif,netif->name,netif->num);
+		HMI_cprintf(ctx,"%p %s %d ",netif,netif->name,netif->num);
 		if (netif->flags & NETIF_FLAG_UP) {
 			HMI_printf("UP ");
 		}
@@ -308,14 +308,14 @@ net_display(void)
 			HMI_printf("ETHERNET ");
 		}
 		ip_addr=netif->ip_addr.addr;
-		HMI_printf("%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
 		ip_addr=netif->netmask.addr;
-		HMI_printf("%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
-		HMI_printf("%d %02x:%02x:%02x:%02x:%02x:%02x\r\n", netif->hwaddr_len, h[0], h[1], h[2], h[3], h[4], h[5]);
+		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_cprintf(ctx,"%d %02x:%02x:%02x:%02x:%02x:%02x\r\n", netif->hwaddr_len, h[0], h[1], h[2], h[3], h[4], h[5]);
 		
 		netif=netif->next;
 	}
-
+	return 2;
 }
 
 extern "C" {

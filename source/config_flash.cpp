@@ -133,11 +133,7 @@ unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
 	int i;
 	random_8 = 0;
 	for (i=0; i<8; i++) {
-#ifndef SKIP_UNIMPLEMENTED
 		interm_random = analog_pin->read_u16();
-#else
-		interm_random = 126;
-#endif
 		interm_random = (interm_random & 0x10)>>4;
 		interm_random = (interm_random << i);
 		random_8 = random_8 + interm_random;
@@ -219,14 +215,10 @@ void apply_config_from_raw_string(npr_config* data_r) {
 		
 	}
 	if ( (is_TDMA_master) && (CONF_master_FDD == 1) ) { // FDD Master down
-#ifndef SKIP_UNIMPLEMENTED
 		G_FDD_trig_pin->output();
-#endif
 	}
 	if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {// FDD master up
-#ifndef SKIP_UNIMPLEMENTED
 		G_FDD_trig_IRQ->rise(&TDMA_FDD_up_top_measure);
-#endif
 	}
 }
 

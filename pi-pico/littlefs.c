@@ -1,4 +1,5 @@
 #include "pico_hal.h"
+#include "npr70piextra.h"
 #include "common.h"
 
 void littlefs_init(void)
@@ -50,3 +51,22 @@ unsigned int virt_EEPROM_read(void *data)
 	return 0;
 }
 
+int cmd_ls(struct context *ctx)
+{
+	return 3;
+}
+
+int cmd_rm(struct context *ctx)
+{
+	return 3;
+}
+
+int cmd_cat(struct context *ctx)
+{
+	return 3;
+}
+
+int cmd_wget(struct context *ctx)
+{
+	return 3;
+}

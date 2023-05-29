@@ -3,20 +3,9 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "npr70piconfig.h"
-
-extern "C" void debug(const char *str, ...);
-extern "C" void net_display(void);
-extern "C" void cmd_test(char *s1, char *s2);
-extern "C" unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
-extern "C" void virt_EEPROM_errase_all(void);
-extern "C" unsigned int virt_EEPROM_read(void *data);
-
-#define HAVE_CALL_BOOTLOADER 1
-#define HAVE_DISPLAY_NET 1
-#define HAVE_CMD_TEST 1
-#define HAVE_EXTERNAL_EEPROM_CONFIG 1
-#define SKIP_UNIMPLEMENTED 1
-
+extern "C" {
+#include "npr70piextra.h"
+}
 
 #define SERIAL_TX 0
 #define SERIAL_RX 0
@@ -42,7 +31,9 @@ public:
 typedef unsigned int us_timestamp_t;
 
 class SPI {
+  void * port;
 public:
+  SPI(void * port);
   void transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int rx_len);
 };
 
@@ -55,34 +46,48 @@ public:
    int read_us(void);
 };
 class AnalogIn {
+   int pin;
+public:
+   AnalogIn(int pin);
+   unsigned short read_u16();
 };
 
 class DigitalIn {
+  int pin;
 public:
+  DigitalIn(int pin);
   int read(void);
   operator int();
 };
 
 class DigitalOut {
+  int pin;
 public:
-   void write(int value);
+  DigitalOut(int pin);
+  DigitalOut &operator= (int value) { write(value); return *this; }
+  void write(int value);
 };
 
 class DigitalInOut {
+  int pin;
 public:
-   void write(int value);
+  DigitalInOut(int pin);
+  DigitalInOut &operator= (int value) { write(value); return *this; }
+  void write(int value);
+  void output(void);
 };
 
 // typedef int DigitalOut;
 class InterruptIn {
+   int pin;
 public:
+  InterruptIn(int pin);
   int read(void);
+  void rise(void (*func)(void));
   operator int();
 };
 void NVIC_SystemReset(void);
 void wait_ms(int ms);
 void wait_us(us_timestamp_t us);
-extern "C" void misc_loop(void);
-extern "C" void call_bootloader(void);
 #define __MBED_H__
 #endif

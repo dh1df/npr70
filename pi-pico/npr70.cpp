@@ -12,12 +12,24 @@
 #include "W5500_lwip.h"
 #include "npr70piconfig.h"
 #include "../source/config_flash.h"
+#include "../source/SI4463.h"
+#include "../source/global_variables.h"
+#include "mbed.h"
 #include "common.h"
 
 
 #define LED_PIN     25
 
 err_t error;
+
+static SPI spi_1(spi1);
+static DigitalOut CS2(SI4463_PIN_CS);
+static InterruptIn Int_SI4463(SI4463_PIN_CS);
+static DigitalOut LED_RX_loc(LED_RX_PIN);
+static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
+static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
+static InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
+static DigitalOut PTT_PA_pin(GPIO_10_PIN);
 
 void debug(const char *str, ...)
 {
@@ -100,6 +112,23 @@ init_spi(void)
 	gpio_set_function(SPI1_PIN_MOSI, GPIO_FUNC_SPI);
 }
 
+void
+init_si4463(void)
+{
+	static SI4463_Chip SI4463_1;
+        SI4463_1.spi = &spi_1;//1
+        SI4463_1.cs = &CS2;//2
+        SI4463_1.interrupt = &Int_SI4463;
+        SI4463_1.RX_LED = &LED_RX_loc;
+        SI4463_1.SDN = &SI4463_SDN;
+
+        G_SI4463 = &SI4463_1;
+
+        G_FDD_trig_pin = &FDD_trig_pin;
+        G_FDD_trig_IRQ = &FDD_trig_IRQ;
+        G_PTT_PA_pin = &PTT_PA_pin;
+}
+
 int
 init_wifi(void)
 {
@@ -137,8 +166,8 @@ init_wifi(void)
 extern "C" void enchw_init(void);
 extern "C" void test(void);
 
-void
-cmd_test(char *s1, char *s2)
+int
+cmd_test(struct context *ctx)
 {
 #if 0
 	if (s1) {
@@ -156,6 +185,20 @@ cmd_test(char *s1, char *s2)
 		}
 	}
 #endif
+#if 1
+	SI4463_SDN = 0;
+	wait_ms(300);
+	init_si4463();
+	SI4463_SDN = 1;
+        int i = SI4463_configure_all();
+        if (i == 1) {
+                debug("SI4463 configured\r\n");
+        } else {
+                debug("SI4463 error while configure\r\n");
+	}
+	SI4463_print_version(G_SI4463);
+#endif
+	return 3;
 }
 
 int main()

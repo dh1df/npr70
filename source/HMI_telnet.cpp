@@ -243,26 +243,28 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 	char* loc_param2_str;
 	int command_understood = 0;
 	int temp;
+	struct context ctx;
 
 	loc_command_str = strtok (RX_text, " ");
 	loc_param1_str = strtok (NULL, " ");
 	loc_param2_str = strtok (NULL, " ");
+	ctx.s1=loc_param1_str;
+	ctx.s2=loc_param2_str;
 
 	if (loc_command_str) {
 		if (strcmp(loc_command_str, "radio") == 0) {
-			command_understood = 1;
+			command_understood = 3;
 			if (strcmp(loc_param1_str, "on") == 0) {
 				if (CONF_radio_state_ON_OFF == 0) {
 					RADIO_on(1, 1, 1);
 				}
-				HMI_printf("OK\r\nready> ");
 			}
 			else if (strcmp(loc_param1_str, "off") == 0) {
 				RADIO_off(1);
-				HMI_printf("OK\r\nready> ");
 			}
 			else {
-				HMI_printf("unknown radio command\r\nready> ");
+				HMI_printf("unknown radio command\r\n");
+				command_understood = 2;
 			}
 		}
 		
@@ -280,7 +282,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			HMI_periodic_call();
 		}
 		if (strcmp(loc_command_str, "display") == 0) {
-			command_understood = 1;
+			command_understood = 2;
 			if (strcmp(loc_param1_str, "config") == 0) {//display config
 				HMI_display_config();
 			}
@@ -292,11 +294,12 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			}
 #ifdef HAVE_DISPLAY_NET
 			else if (strcmp(loc_param1_str, "net") == 0) {//display network status
-				net_display();
+				command_understood = cmd_display_net(&ctx);
 			}
 #endif
 			else {
-				HMI_printf("unknown display command\r\nready> ");
+				HMI_printf("unknown display command\r\n");
+				command_understood = 2;
 			}
 		}
 		if (strcmp(loc_command_str, "set") == 0) {
@@ -322,12 +325,12 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 		}
 #endif
 		if (strcmp(loc_command_str, "save") == 0) {
-			command_understood = 1;
+			command_understood = 2;
 
 			RADIO_off_if_necessary(0);
 			temp = NFPR_config_save();
 			RADIO_restart_if_necessary(0, 0, 1);
-			HMI_printf("saved index:%i\r\nready> ", temp);
+			HMI_printf("saved index:%i\r\n", temp);
 		}
 		if (strcmp(loc_command_str, "reset_to_default") == 0) {
 			command_understood = 1;
@@ -338,13 +341,24 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			NVIC_SystemReset();
 		}
 		if (strcmp(loc_command_str, "version") == 0) {
-			command_understood = 1;
-			HMI_printf("firmware: %s\r\nfreq band: %s\r\nready> ", FW_VERSION, FREQ_BAND);
+			command_understood = 2;
+			HMI_printf("firmware: %s\r\nfreq band: %s\r\n", FW_VERSION, FREQ_BAND);
 		}
 		if (strcmp(loc_command_str, "exit") == 0 || strcmp(loc_command_str, "quit") == 0) {
 			command_understood = 1;
 			HMI_exit();
 		}
+#ifdef HAVE_CMD_FS
+		if (strcmp(loc_command_str, "ls") == 0) command_understood=cmd_ls(&ctx);
+		if (strcmp(loc_command_str, "rm") == 0) command_understood=cmd_rm(&ctx);
+		if (strcmp(loc_command_str, "cat") == 0) command_understood=cmd_cat(&ctx);
+		if (strcmp(loc_command_str, "wget") == 0) command_understood=cmd_wget(&ctx);
+#endif
+#ifdef HAVE_CMD_TEST
+		if (strcmp(loc_command_str, "test") == 0) {
+			command_understood=cmd_test(&ctx);
+		}
+#endif
 		if (strcmp(loc_command_str, "help") == 0) {
 			command_understood = 1;
 			HMI_printf_detail(
@@ -369,17 +383,24 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 #ifdef HAVE_CMD_TEST
 					"test\r\n"
 #endif
+#ifdef HAVE_CMD_FS
+					"ls\r\n"
+					"rm\r\n"
+					"cat\r\n"
+					"wget\r\n"
+#endif
 					"help\r\n"
 					"ready> "
 			);
 		}
-		else if (strcmp(loc_command_str, "test") == 0) {
-			cmd_test(loc_param1_str, loc_param2_str);
-			command_understood = 1;	
-			HMI_printf("OK\r\nready> ");
+		if (command_understood == 3) {
+			HMI_printf("OK\r\n");
 		}
 		if (command_understood == 0) {
-			HMI_printf("unknown command\r\nready> ");
+			HMI_printf("unknown command\r\n ");
+		}
+		if (command_understood >= 2 || command_understood == 0) {
+			HMI_printf("ready> ");
 		}
 	} else {//just a return with nothing
 		HMI_printf("ready> ");
@@ -526,7 +547,6 @@ void HMI_display_config(void) {
 		HMI_printf("  IP_begin: %i.%i.%i.%i\r\n", IP_loc[0], IP_loc[1],IP_loc[2],IP_loc[3]);
 		HMI_printf("  client_req_size: %ld\r\n  DHCP_active: %s\r\n", CONF_radio_IP_size_requested, HMI_yes_no[LAN_conf_saved.DHCP_server_active]);
 	}
-	HMI_printf("ready> ");
 }
 
 void HMI_display_static(void) {

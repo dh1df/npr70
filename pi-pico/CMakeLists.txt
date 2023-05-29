@@ -37,10 +37,11 @@ set(NPR70_COMMON_SOURCES
 
 set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.c littlefs.c)
 
+set_source_files_properties(littlefs-lib/pico-hal.c PROPERTIES COMPILE_DEFINITIONS bool=uint8_t)
 add_subdirectory(littlefs-lib)
 
 add_executable(${PROJECT_NAME} ${NPR70_PI_SOURCES} ${NPR70_COMMON_SOURCES} ${ENC28J60_SOURCES} ${TINYUSB_LIBNETWORKING_SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\")
+target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" FS_SIZE=1048576)
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)

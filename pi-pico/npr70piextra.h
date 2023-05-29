@@ -1,0 +1,19 @@
+#define HAVE_CALL_BOOTLOADER 1
+#define HAVE_DISPLAY_NET 1
+#define HAVE_CMD_TEST 1
+#define HAVE_EXTERNAL_EEPROM_CONFIG 1
+#define HAVE_CMD_FS 1
+
+void debug(const char *str, ...);
+struct context;
+int cmd_display_net(struct context *c);
+int cmd_test(struct context *c);
+int cmd_ls(struct context *c);
+int cmd_rm(struct context *c);
+int cmd_cat(struct context *c);
+int cmd_wget(struct context *c);
+unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
+void virt_EEPROM_errase_all(void);
+unsigned int virt_EEPROM_read(void *data);
+void misc_loop(void);
+void call_bootloader(void);

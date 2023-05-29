@@ -54,7 +54,7 @@ typedef struct {
 	uint8_t  transmission_method;
 	uint8_t  master_fdd;
 	uint32_t master_fdd_down_IP;
-	uint8_t static_client_entries[178];
+	uint8_t xstatic_client_entries[178];
 } __attribute__((packed)) npr_config; // Ensure the structure is packed to have predictable results in the flash!
 
 #define config_size sizeof(npr_config)
@@ -89,7 +89,7 @@ const npr_config NFPR_default_config {
 	.transmission_method = 0,
 	.master_fdd = 0,
 	.master_fdd_down_IP = 0xc0a800fd, // 192.168.0.252
-	.static_client_entries = {0}
+	.xstatic_client_entries = {0}
 };
 
 
