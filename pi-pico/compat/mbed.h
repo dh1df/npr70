@@ -43,7 +43,10 @@ public:
    void attach_us (void (*func)(void), us_timestamp_t t);
 };
 class Timer {
+   int base;
 public:
+   Timer(void);
+   void reset(void);
    int read_us(void);
 };
 class AnalogIn {

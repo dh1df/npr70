@@ -62,9 +62,19 @@ void Timeout::attach_us (void (*func)(void), us_timestamp_t t)
         debug("attach_us\r\n");
 }
 
+Timer::Timer(void)
+{
+	base=0;
+}
+
 int Timer::read_us(void)
 {
-	return time_us_32();
+	return time_us_32()-base;
+}
+
+void Timer::reset(void)
+{
+	base=time_us_32();
 }
 
 DigitalInOut::DigitalInOut(int pin)
@@ -79,6 +89,16 @@ DigitalOut::DigitalOut(int pin)
 	this->pin=pin;
 	gpio_set_function(pin, GPIO_FUNC_SIO);
 	gpio_set_dir(pin, GPIO_OUT);
+}
+
+int DigitalIn::read()
+{
+	return gpio_get(this->pin);
+}
+
+DigitalIn::operator int()
+{
+	return this->read();
 }
 
 void DigitalInOut::write(int value)

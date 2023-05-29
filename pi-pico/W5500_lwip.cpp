@@ -287,6 +287,19 @@ W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 	return W5500_next_size(c);
 }
 
+void
+W5500_re_configure(void)
+{
+	debug("W5500_re_configure\r\n");
+}
+
+int
+W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data)
+{
+	debug("W5500_read_MAC_pckt\r\n");
+	return 0;
+}
+
 int
 cmd_display_net(struct context *ctx)
 {

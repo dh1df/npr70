@@ -15,7 +15,11 @@
 #include "../source/SI4463.h"
 #include "../source/global_variables.h"
 #include "../source/TDMA.h"
+#include "../source/L1L2_radio.h"
 #include "../source/HMI_telnet.h"
+#include "../source/DHCP_ARP.h"
+#include "../source/signaling.h"
+#include "../source/Eth_IPv4.h"
 #include "mbed.h"
 #include "common.h"
 
@@ -24,6 +28,7 @@
 
 err_t error;
 
+static SPI spi_0(spi0, SPI0_PIN_MISO, SPI0_PIN_SCK, SPI0_PIN_MOSI);
 static SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
 static DigitalOut CS2(SI4463_PIN_CS);
 InterruptIn Int_SI4463(SI4463_PIN_INT);
@@ -32,6 +37,13 @@ static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
 static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
 static InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
 static DigitalOut PTT_PA_pin(GPIO_10_PIN);
+
+static unsigned int timer_snapshot;
+static Timer slow_timer;
+static int temperature_timer;
+static int slow_action_counter;
+static int signaling_counter;
+
 
 void debug(const char *str, ...)
 {
@@ -99,15 +111,6 @@ init_spi(void)
 	gpio_set_dir(ENC_PIN_CS, GPIO_OUT);
 	gpio_put(ENC_PIN_CS, 1);
 
-	spi_init(spi0, 1 * 1000 * 1000);
-	gpio_set_function(SPI0_PIN_MISO, GPIO_FUNC_SPI);
-	gpio_set_function(SPI0_PIN_SCK, GPIO_FUNC_SPI);
-	gpio_set_function(SPI0_PIN_MOSI, GPIO_FUNC_SPI);
-
-	spi_init(spi1, 1 * 1000 * 1000);
-	gpio_set_function(SPI1_PIN_MISO, GPIO_FUNC_SPI);
-	gpio_set_function(SPI1_PIN_SCK, GPIO_FUNC_SPI);
-	gpio_set_function(SPI1_PIN_MOSI, GPIO_FUNC_SPI);
 }
 
 void
@@ -138,27 +141,12 @@ init_wifi(void)
 	// however it doesn't use the `CYW43_NO_POWERSAVE_MODE` value, so we do this instead:
 	cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
 
-#if 0
-	debug("Connecting to WiFi...\r\n");
-	if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 1500)) {
-		debug("failed to connect.\r\n");
-		return 1;
-	} else {
-		debug("Connected.\r\n");
-
-		extern cyw43_t cyw43_state;
-		auto ip_addr = cyw43_state.netif[CYW43_ITF_STA].ip_addr.addr;
-		debug("IP Address: %lu.%lu.%lu.%lu\r\n", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
-		return 0;
-	}
-#else
 	if (cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK)) {
 		debug("failed wifi connect\r\n");
 	} else {
 		debug("wifi connecting\r\n");
 	}
 	return 0;
-#endif
 }
 
 extern "C" void enchw_init(void);
@@ -206,8 +194,65 @@ cmd_test(struct context *ctx)
 	return 3;
 }
 
+static void loop100(void)
+{
+	int i;
+	for (i=0; i<100; i++) {
+		if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {
+			FDDup_RX_FIFO_dequeue();
+		} else {
+			radio_RX_FIFO_dequeue(W5500_p1);
+		}
+#if 0
+		Eth_RX_dequeue(W5500_p1); 
+#endif
+		TDMA_slave_timeout();
+#ifdef EXT_SRAM_USAGE
+		ext_SRAM_periodic_call();
+#endif
+		if (is_SRAM_ext == 1) {
+			ext_SRAM_periodic_call();
+		}
+		timer_snapshot = slow_timer.read_us();
+		if (timer_snapshot > 666000) {//666000
+			slow_timer.reset();
+			slow_action_counter++;
+			if (slow_action_counter > 2) {slow_action_counter = 0; }
+			
+			if (slow_action_counter == 0) {
+				HMI_periodic_call();
+			}
+			//debug_counter = 0;
+
+			
+			if (slow_action_counter == 1) {//every 2 sec
+				signaling_counter++;
+				if (signaling_counter >= CONF_signaling_period) {
+					signaling_periodic_call();
+					signaling_counter = 0;
+				}
+			}
+			
+			if (slow_action_counter == 2) {
+				DHCP_ARP_periodic_free_table();
+#if 0
+				W5500_re_configure_periodic_call(W5500_p1);
+#endif
+			
+				temperature_timer++;
+				if(temperature_timer > 15) {// 15 every 30 sec
+					temperature_timer = 0;
+					G_need_temperature_check = 1;
+					SI4463_periodic_temperature_check_2();//SI4463_periodic_temperature_check(G_SI4463);
+				}
+			}
+		}
+	}
+}
+
 int main()
 {
+	is_SRAM_ext = 0;
 #if 0
 	stdio_uart_init();
 #else
@@ -246,6 +291,7 @@ int main()
 	tcp_setup();
 
 	while (true) {
+		loop100();
 		tud_task();
 		service_traffic();
 		misc_loop();
