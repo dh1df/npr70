@@ -101,6 +101,10 @@ init_spi(void)
 	gpio_set_dir(SI4463_PIN_CS, GPIO_OUT);
 	gpio_put(SI4463_PIN_CS, 1);
 
+	gpio_set_function(SI4463_PIN_SDN, GPIO_FUNC_SIO);
+	gpio_set_dir(SI4463_PIN_SDN, GPIO_OUT);
+	gpio_put(SI4463_PIN_SDN, 1);
+
 	spi_init(spi0, 1 * 1000 * 1000);
 	gpio_set_function(SPI0_PIN_MISO, GPIO_FUNC_SPI);
 	gpio_set_function(SPI0_PIN_SCK, GPIO_FUNC_SPI);

@@ -51,13 +51,15 @@
 
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1
 
+#define LWIP_CALLBACK_API		1
+#define LWIP_HTTPD			1
 #define LWIP_HTTPD_CGI                  1
 #ifndef LWIP_HTTPD_SSI
 #define LWIP_HTTPD_SSI                  0
 #define LWIP_HTTPD_SSI_INCLUDE_TAG      0
 #endif
 #define HTTPD_USE_CUSTOM_FSDATA         1
-#define HTTPD_FSDATA_FILE               "../../../../fsdata.c"
+#define HTTPD_FSDATA_FILE               "fsdata.c"
 
 #define LWIP_SINGLE_NETIF               0
 #define LWIP_NETIF_HOSTNAME             1

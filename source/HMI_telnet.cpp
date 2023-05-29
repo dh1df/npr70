@@ -397,7 +397,10 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			HMI_printf("OK\r\n");
 		}
 		if (command_understood == 0) {
-			HMI_printf("unknown command\r\n ");
+			HMI_printf("unknown command\r\n");
+		}
+		if (command_understood < 0) {
+			HMI_printf("ERR %d\r\n",command_understood);
 		}
 		if (command_understood >= 2 || command_understood == 0) {
 			HMI_printf("ready> ");

@@ -1,4 +1,5 @@
 #include "pico_hal.h"
+#include "../source/HMI_telnet.h"
 #include "npr70piextra.h"
 #include "common.h"
 
@@ -53,20 +54,30 @@ unsigned int virt_EEPROM_read(void *data)
 
 int cmd_ls(struct context *ctx)
 {
+	struct lfs_info info;
+	struct pico_fsstat_t fsstat;
+	int dir=pico_dir_open("/");
+	if (dir < 0) 
+		return dir;
+	while(pico_dir_read(dir, &info) > 0) {
+		if (strcmp(info.name,".") && strcmp(info.name,".."))
+			HMI_cprintf(ctx,"%s %d\r\n",info.name,info.size);
+	}
+	pico_dir_close(dir);
+	pico_fsstat(&fsstat);
+	HMI_cprintf(ctx,"%d*%d/%d(%d%%)\r\n",fsstat.block_size,fsstat.blocks_used,fsstat.block_count,fsstat.blocks_used*100/fsstat.block_count);
 	return 3;
 }
 
 int cmd_rm(struct context *ctx)
 {
+	int err=pico_remove(ctx->s1);
+	if (err < 0)
+		return err;
 	return 3;
 }
 
 int cmd_cat(struct context *ctx)
-{
-	return 3;
-}
-
-int cmd_wget(struct context *ctx)
 {
 	return 3;
 }

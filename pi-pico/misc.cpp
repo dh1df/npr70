@@ -41,7 +41,7 @@ void SPI::transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int
 {
 	if (tx_len == rx_len) {
                 spi_write_read_blocking((spi_inst_t *)this->port, tx, rx, tx_len);
-		debug("spi %d %02x %02x,%02x %02x\r\n",tx_len, tx[0], tx[1], rx[0], rx[1]);
+		// debug("spi %d %02x %02x,%02x %02x\r\n",tx_len, tx[0], tx[1], rx[0], rx[1]);
         } else {
                 debug("transfer_2 %d != %d\r\n",tx_len, rx_len);
         }
@@ -84,8 +84,7 @@ void DigitalInOut::output(void)
 
 void DigitalOut::write(int value)
 {
-	if (this->pin != 9)
-		debug("DigitalOut::write %d=%d\r\n",this->pin,value);
+	// debug("DigitalOut::write %d=%d\r\n",this->pin,value);
 	gpio_put(this->pin, value);
 }
 

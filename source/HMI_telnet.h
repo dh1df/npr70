@@ -17,10 +17,16 @@
 
 #ifndef TELNET_F4
 #define TELNET_F4
-
+#ifdef __cplusplus
 #include "mbed.h"
 #include "W5500.h"
 #include "global_variables.h"
+
+int telnet_loop(W5500_chip* W5500);
+
+#else
+extern char HMI_out_str[120];
+#endif
 
 struct context {
   char *s1;
@@ -32,7 +38,6 @@ struct context {
 
 #define HMI_cprintf(ctx, param, ...) HMI_printf(param, ##__VA_ARGS__)
 
-int telnet_loop(W5500_chip* W5500);
 
 int serial_term_loop (void);
 
@@ -68,6 +73,9 @@ void HMI_print_who(void);
 
 void HMI_periodic_call(void);
 
+#ifdef __cplusplus
+extern "C" 
+#endif
 void HMI_printf_detail (const char *str);
 
 #endif
