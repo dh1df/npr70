@@ -33,6 +33,11 @@ struct context {
   char *s2;
 };
 
+struct command {
+  const char *cmd;
+  int (*func)(struct context *ctx);
+};
+
 #define HMI_printf(param, ...) snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
 	HMI_printf_detail(HMI_out_str);
 
