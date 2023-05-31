@@ -39,10 +39,13 @@ public:
 };
 
 class Timeout {
-   us_timestamp_t base;
-   us_timestamp_t interval;
+   repeating_timer_t timer;
+   bool active;
+   void (*func)(void);
 public:
+   Timeout(void);
    void attach_us (void (*func)(void), us_timestamp_t t);
+   void trigger(void);
 };
 
 class Timer {
@@ -61,44 +64,43 @@ public:
    unsigned short read_u16();
 };
 
-class DigitalIn {
-  int pin;
+class Gpio {
 public:
-  DigitalIn(int pin);
+  int pin;
+  Gpio(int pin);
   int read(void);
   operator int();
 };
 
-class DigitalOut {
-  int pin;
+class DigitalIn : public Gpio {
 public:
-  DigitalOut(int pin);
-  DigitalOut &operator= (int value) { write(value); return *this; }
-  void write(int value);
+  DigitalIn(int pin);
 };
 
-class DigitalInOut {
-  int pin;
+class DigitalOut : public Gpio {
+public:
+  DigitalOut(int pin);
+  void write(int value);
+  DigitalOut &operator= (int value) { write(value); return *this; }
+};
+
+class DigitalInOut : public DigitalOut {
 public:
   DigitalInOut(int pin);
-  DigitalInOut &operator= (int value) { write(value); return *this; }
-  void write(int value);
   void output(void);
 };
 
 // typedef int DigitalOut;
-class InterruptIn {
-  int pin;
+class InterruptIn : public Gpio {
   int event;
   void (*func)(void);
 public:
   InterruptIn(int pin);
-  int read(void);
   void rise(void (*func)(void));
   void fall(void (*func)(void));
   void trigger(void);
-  operator int();
 };
+
 void NVIC_SystemReset(void);
 void wait_ms(int ms);
 void wait_us(us_timestamp_t us);

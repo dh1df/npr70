@@ -503,6 +503,7 @@ void TX_intern_FIFO_write(unsigned char* data, int size) {
 	TX_buff_intern_last_ready = TX_buff_intern_WR_pointer;
 }
 
+#ifndef HAVE_INTEGRATED_SRAM
 void ext_SRAM_write2(ext_SRAM_chip* loc_SPI, unsigned char* loc_data, unsigned int address, int size) {
 	//static unsigned char trash[350];
 	static unsigned char command[6] = {0x02, 0x00, 0x00, 0x00};
@@ -514,6 +515,7 @@ void ext_SRAM_write2(ext_SRAM_chip* loc_SPI, unsigned char* loc_data, unsigned i
 	loc_SPI->spi_port->transfer_2 (loc_data, size, trash, size);
 	loc_SPI->cs->write(1);
 }
+#endif
 
 void TX_ext_FIFO_write(unsigned char* data, int size) {
 	unsigned int loc_address;
@@ -640,6 +642,7 @@ int TX_FIFO_full_withSRAM (int priority) {
 	}
 }
 
+#ifndef HAVE_INTEGRATED_SRAM
 void ext_SRAM_read2(ext_SRAM_chip* loc_SPI, unsigned char* loc_data, unsigned int address, int size) {
 	static unsigned char command[6] = {0x03, 0x00, 0x00, 0x00};
 	loc_SPI->cs->write(0);
@@ -650,6 +653,7 @@ void ext_SRAM_read2(ext_SRAM_chip* loc_SPI, unsigned char* loc_data, unsigned in
 	loc_SPI->spi_port->transfer_2 (trash, size, loc_data, size);
 	loc_SPI->cs->write(1);
 }
+#endif
 
 void ext_SRAM_periodic_call(void) {
 	int intern_FIFO_filling;

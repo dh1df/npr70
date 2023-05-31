@@ -1,9 +1,21 @@
 #include "pico/bootrom.h"
 #include "hardware/watchdog.h"
 #include "hardware/spi.h"
+#include "hardware/adc.h"
 #include "../source/HMI_telnet.h"
 #include "../source/DHCP_ARP.h"
 #include "mbed.h"
+
+static unsigned char sram[128*1024];
+
+void ext_SRAM_read2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size)
+{
+	memcpy(loc_data, sram+address, size);
+}
+void ext_SRAM_write2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size)
+{
+	memcpy(sram+address, loc_data, size);
+}
 
 void NVIC_SystemReset(void)
 { 
@@ -57,11 +69,32 @@ void SPI::transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int
         }
 }
 
+static bool timeout_callback(repeating_timer_t *t)
+{
+	// debug("timeout_callback %p %p\r\n",t,t->user_data);
+	Timeout *timeout=(Timeout *)t->user_data;
+	timeout->trigger();
+	return true;
+}
+
+Timeout::Timeout(void)
+{
+	active=false;
+}
+
 void Timeout::attach_us (void (*func)(void), us_timestamp_t t)
 {
-	base=time_us_32();
-	interval=t;
-        debug("attach_us %d %p\r\n",t,this);
+        // debug("attach_us %d %p %p\r\n",t,&timer,this);
+	if (active)
+		cancel_repeating_timer(&timer);
+	this->func=func;
+	add_repeating_timer_us(t, timeout_callback, this, &timer);
+	active=true;
+}
+
+void Timeout::trigger(void)
+{
+	func();
 }
 
 Timer::Timer(void)
@@ -84,34 +117,31 @@ void Timer::start(void)
 	reset();
 }
 
-DigitalInOut::DigitalInOut(int pin)
+DigitalInOut::DigitalInOut(int pin) : DigitalOut(pin)
 {
 	gpio_set_dir(pin, GPIO_IN);
 	gpio_set_pulls(pin, true, false);
-	this->pin=pin;
 }
 
-DigitalOut::DigitalOut(int pin)
+DigitalOut::DigitalOut(int pin) : Gpio(pin)
 {
-	this->pin=pin;
 	gpio_set_function(pin, GPIO_FUNC_SIO);
 	gpio_set_dir(pin, GPIO_OUT);
 }
 
-int DigitalIn::read()
+Gpio::Gpio(int pin)
+{
+	this->pin=pin;
+}
+
+int Gpio::read()
 {
 	return gpio_get(this->pin);
 }
 
-DigitalIn::operator int()
+Gpio::operator int()
 {
 	return this->read();
-}
-
-void DigitalInOut::write(int value)
-{
-	debug("DigitalInOut::write %d=%d\r\n",this->pin,value);
-	gpio_put(this->pin, value);
 }
 
 void DigitalInOut::output(void)
@@ -134,7 +164,7 @@ static void irq_callback(uint gpio, uint32_t event_mask)
 }
 
 
-InterruptIn::InterruptIn(int pin)
+InterruptIn::InterruptIn(int pin) : Gpio(pin)
 {
 	this->pin=pin;
 	this->event=0;
@@ -147,15 +177,10 @@ void InterruptIn::rise(void (*func)(void))
 
 void InterruptIn::fall(void (*func)(void))
 {
-	debug("InterruptIn::fall\r\n",this->read());
+	debug("InterruptIn::fall %d\r\n",this->read());
 	this->event=GPIO_IRQ_LEVEL_LOW;
 	this->func=func;
 	gpio_set_irq_enabled_with_callback(this->pin, this->event, true, irq_callback);
-}
-
-int InterruptIn::read()
-{
-	return gpio_get(this->pin);
 }
 
 void InterruptIn::trigger()
@@ -163,17 +188,16 @@ void InterruptIn::trigger()
 	this->func();
 }
 
-InterruptIn::operator int()
-{
-	return this->read();
-}
-
 AnalogIn::AnalogIn(int pin)
 {
 	this->pin=pin;
+	adc_init();
+	adc_gpio_init(26);
+	adc_select_input(0);
+
 }
 
 unsigned short AnalogIn::read_u16(void)
 {
-	return 126;
+	return adc_read();
 }

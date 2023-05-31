@@ -35,6 +35,7 @@ InterruptIn Int_SI4463(SI4463_PIN_INT);
 
 static AnalogIn Random_pin(RANDOM_PIN);
 static DigitalOut LED_RX_loc(LED_RX_PIN);
+static DigitalOut LED_connected(LED_CONN_PIN);
 static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
 static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
 static InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
@@ -175,9 +176,9 @@ cmd_test(struct context *ctx)
 #endif
 #if 1
 	SI4463_SDN = 0;
-	wait_ms(300);
 	init_si4463();
-	SI4463_SDN = 1;
+	wait_ms(300);
+#endif
         int i = SI4463_configure_all();
         if (i == 1) {
                 debug("SI4463 configured\r\n");
@@ -191,7 +192,6 @@ cmd_test(struct context *ctx)
         SI4463_periodic_temperature_check(G_SI4463);
         Int_SI4463.fall(&SI4463_HW_interrupt);
 
-#endif
 	return 3;
 }
 
@@ -255,6 +255,7 @@ static void
 init1(void)
 {
 	int i;
+#if 1
 	//SI4463_print_version(G_SI4463);//!!!!
 	SI4463_get_state(G_SI4463);
 
@@ -269,11 +270,6 @@ init1(void)
                 //        NVIC_SystemReset(); //reboot
                 // }
         }
-
-#ifdef EXT_SRAM_USAGE
-        ext_SRAM_set_mode(SPI_SRAM_p);
-        wait_ms(2)
-        ext_SRAM_init();
 #endif
 
 	// W5500_initial_configure(W5500_p1);
@@ -298,7 +294,7 @@ init1(void)
 
 int main()
 {
-	is_SRAM_ext = 0;
+	int i;
 #if 0
 	stdio_uart_init();
 #else
@@ -308,6 +304,21 @@ int main()
 	init_spi();
 	debug("littlefs_init()\r\n");
 	littlefs_init();	
+	wait_ms(20);
+        is_SRAM_ext = ext_SRAM_detect();
+
+	init_si4463();
+	    LED_RX_loc = 1;
+        for (i=0; i<7; i++) {
+                wait_ms(200);
+                LED_RX_loc = !LED_RX_loc;
+                LED_connected = !LED_connected;
+                SI4463_SDN = !SI4463_SDN;
+        }
+        LED_RX_loc = 0;
+        LED_connected = 0;
+        SI4463_SDN = 1;
+
 	debug("NFPR_config_read()\r\n");
 	NFPR_config_read(&Random_pin);
 	
@@ -335,6 +346,15 @@ int main()
 
 	tcp_setup();
 	gpio_put(LED_PIN, 1);
+#if 0
+	SI4463_SDN = 1;
+	wait_ms(300);
+	SI4463_SDN = 0;
+#endif
+#if 0
+	init_si4463();
+	SI4463_SDN = 1;
+#endif
 
 	init1();
 
