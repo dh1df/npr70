@@ -5,6 +5,9 @@
 #define HAVE_CMD_FS 1
 #define HAVE_CMD_FLASH 1
 #define HAVE_INTEGRATED_SRAM 1
+#define HAVE_MAIN_H 1
+#define HAVE_NO_W5500 1
+#define HAVE_NO_SNMP 1
 
 void debug(const char *str, ...);
 struct context;

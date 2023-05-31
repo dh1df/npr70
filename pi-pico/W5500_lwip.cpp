@@ -300,6 +300,16 @@ W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data
 	return 0;
 }
 
+void
+W5500_initial_configure(W5500_chip* SPI_p_loc)
+{
+}
+
+void
+W5500_re_configure_periodic_call(W5500_chip* SPI_p_loc)
+{
+}
+
 int
 cmd_display_net(struct context *ctx)
 {

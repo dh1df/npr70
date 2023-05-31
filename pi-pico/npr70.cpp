@@ -22,24 +22,23 @@
 #include "../source/Eth_IPv4.h"
 #include "mbed.h"
 #include "common.h"
+#include "main.h"
 
-
-#define LED_PIN     25
 
 err_t error;
 
-static SPI spi_0(spi0, SPI0_PIN_MISO, SPI0_PIN_SCK, SPI0_PIN_MOSI);
-static SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
-static DigitalOut CS2(SI4463_PIN_CS);
+SPI spi_0(spi0, SPI0_PIN_MISO, SPI0_PIN_SCK, SPI0_PIN_MOSI);
+SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
+DigitalOut CS2(SI4463_PIN_CS);
 InterruptIn Int_SI4463(SI4463_PIN_INT);
 
-static AnalogIn Random_pin(RANDOM_PIN);
-static DigitalOut LED_RX_loc(LED_RX_PIN);
-static DigitalOut LED_connected(LED_CONN_PIN);
-static DigitalOut SI4463_SDN(SI4463_PIN_SDN);
-static DigitalInOut FDD_trig_pin(GPIO_11_PIN);
-static InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
-static DigitalOut PTT_PA_pin(GPIO_10_PIN);
+AnalogIn Random_pin(RANDOM_PIN);
+DigitalOut LED_RX_loc(LED_RX_PIN);
+DigitalOut LED_connected(LED_CONN_PIN);
+DigitalOut SI4463_SDN(SI4463_PIN_SDN);
+DigitalInOut FDD_trig_pin(GPIO_11_PIN);
+InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
+DigitalOut PTT_PA_pin(GPIO_10_PIN);
 
 static unsigned int timer_snapshot;
 static Timer slow_timer;
@@ -195,6 +194,7 @@ cmd_test(struct context *ctx)
 	return 3;
 }
 
+#if 0
 static void loop100(void)
 {
 	int i;
@@ -250,7 +250,9 @@ static void loop100(void)
 		}
 	}
 }
+#endif
 
+#if 0
 static void
 init1(void)
 {
@@ -291,6 +293,7 @@ init1(void)
 	HMI_printf("ready> ");
 	slow_timer.start();
 }
+#endif
 
 int main()
 {
@@ -304,6 +307,7 @@ int main()
 	init_spi();
 	debug("littlefs_init()\r\n");
 	littlefs_init();	
+#if 0
 	wait_ms(20);
         is_SRAM_ext = ext_SRAM_detect();
 
@@ -321,8 +325,11 @@ int main()
 
 	debug("NFPR_config_read()\r\n");
 	NFPR_config_read(&Random_pin);
+#endif
 	
 	
+
+	init1();
 
 #if 1
 	// Initialize tinyusb, lwip, dhcpd and httpd
@@ -356,10 +363,9 @@ int main()
 	SI4463_SDN = 1;
 #endif
 
-	init1();
 
 	while (true) {
-		loop100();
+		loop();
 		tud_task();
 		service_traffic();
 		misc_loop();

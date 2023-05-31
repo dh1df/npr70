@@ -31,6 +31,9 @@
 
 #include "ext_SRAM2.h"
 
+#ifdef HAVE_MAIN_H
+#include "main.h"
+#else
 //#define NPR_L476
 //Serial pc(SERIAL_TX, SERIAL_RX); // Nucleo
 //Serial pc(USBTX, USBRX); //NXP LPC1769
@@ -53,31 +56,119 @@ DigitalOut CS3(PB_0);// CS ext SRAM PB_0
 InterruptIn Int_SI4463(PA_3);
 DigitalOut CS2(PA_4);
 SPI spi_1(PA_7, PA_6, PA_5); // mosi, miso, sclk
+#endif
 
-int main()
+static Timer slow_timer; 
+static unsigned int timer_snapshot;
+static int slow_action_counter;
+static int signaling_counter;
+static int telnet_counter;
+static int temperature_timer;
+static LAN_conf_T* LAN_conf_p;
+
+void loop(void)
 {
-    wait_ms(200);
-	pc.baud(921600);
-    pc.printf("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
+	int i;
+	for (i=0; i<100; i++) {
+		if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {
+			FDDup_RX_FIFO_dequeue();
+		} else {
+			radio_RX_FIFO_dequeue(W5500_p1);
+		}
+#ifndef HAVE_NO_W5500
+		Eth_RX_dequeue(W5500_p1); 
+#endif
+		TDMA_slave_timeout();
+#ifdef EXT_SRAM_USAGE
+		ext_SRAM_periodic_call();
+#endif
+		if (is_SRAM_ext == 1) {
+			ext_SRAM_periodic_call();
+		}
+		timer_snapshot = slow_timer.read_us();
+		if (timer_snapshot > 666000) {//666000
+			slow_timer.reset();
+			slow_action_counter++;
+			if (slow_action_counter > 2) {slow_action_counter = 0; }
+			
+			if (slow_action_counter == 0) {
+				HMI_periodic_call();
+			}
+			//debug_counter = 0;
+
+			
+			if (slow_action_counter == 1) {//every 2 sec
+				signaling_counter++;
+				if (signaling_counter >= CONF_signaling_period) {
+					signaling_periodic_call();
+					signaling_counter = 0;
+				}
+			}
+			
+			if (slow_action_counter == 2) {
+				DHCP_ARP_periodic_free_table();
+				W5500_re_configure_periodic_call(W5500_p1);
+			
+				temperature_timer++;
+				if(temperature_timer > 15) {// 15 every 30 sec
+					temperature_timer = 0;
+					G_need_temperature_check = 1;
+					SI4463_periodic_temperature_check_2();//SI4463_periodic_temperature_check(G_SI4463);
+				}
+			}
+		}
+	}
 	
-	Timer slow_timer; 
+	if (is_TDMA_master) {
+		if (CONF_radio_state_ON_OFF==1) {LED_connected.write((timer_snapshot >> 19) & 1);}
+		else {LED_connected.write(0);}
+	} else {
+		if (my_client_radio_connexion_state == 2) {
+			LED_connected.write(1);
+		}else{
+			LED_connected.write(0);
+		}
+	}
+	if (is_telnet_active) {
+		
+		telnet_counter++;
+		if (telnet_counter>10) {
+			telnet_loop(W5500_p1);
+			telnet_counter = 0;
+		}
+	}
+	serial_term_loop();
+
+#ifndef HAVE_NO_SNMP
+	snmp_loop(W5500_p1);
+#endif
+	
+	if ( (LAN_conf_applied.DHCP_server_active == 1) && (!is_TDMA_master) ) {
+		DHCP_server(LAN_conf_p, W5500_p1);
+	}
+}
+
+void init1(void)
+{
 	int i = 1;
-	int temperature_timer = 0;
 	
-	static LAN_conf_T* LAN_conf_p;
 	LAN_conf_p = &LAN_conf_applied;
-	
+
+#ifndef HAVE_NO_W5500	
 	static W5500_chip W5500_1;
 	W5500_p1 = &W5500_1;
 	W5500_1.spi_port = &spi_2;
     W5500_1.cs = &CS1;
     W5500_1.interrupt = &Int_W5500; 
+#endif
 	
 //#ifdef EXT_SRAM_USAGE
+#ifndef HAVE_INTEGRATED_SRAM
 	static ext_SRAM_chip SPI_SRAM;
 	SPI_SRAM_p = &SPI_SRAM;
 	SPI_SRAM.spi_port = &spi_2;
 	SPI_SRAM.cs = &CS3;
+#endif
 //#endif
 	
 	static SI4463_Chip SI4463_1;
@@ -95,12 +186,16 @@ int main()
 	
 	reset_DHCP_table(LAN_conf_p);
 
+#ifndef HAVE_NO_SNMP
 	snmp_init();
+#endif
 		
-    spi_2.format(8,0);
 	spi_1.format(8,0);
-	spi_2.frequency(20000000); 
 	spi_1.frequency(10000000);
+#ifndef HAVE_INTEGRATED_SRAM
+    spi_2.format(8,0);
+	spi_2.frequency(20000000); 
+#endif
 	
 	for(i=0; i<radio_addr_table_size; i++) {
 		CONF_radio_addr_table_status[i] = 0;
@@ -110,9 +205,13 @@ int main()
 	G_PTT_PA_pin->write(0);
 	LED_RX_loc = 0;
 	LED_connected = 0;
+#ifndef HAVE_NO_W5500	
     CS1=1;
+#endif
 	CS2=1;
+#ifndef HAVE_INTEGRATED_SRAM
 	CS3=1;
+#endif
 	SI4463_SDN = 1;
 	
 	wait_ms(20);
@@ -198,88 +297,22 @@ int main()
 	HMI_printf("ready> ");
 	slow_timer.start();
 
-	unsigned int timer_snapshot;
-	int slow_action_counter = 0;
-	int signaling_counter = 0;
-	//SI4463_temp_check_init();
 	
-	int telnet_counter = 0;
+}
+
+#if 0
+int main()
+{
+    wait_ms(200);
+	pc.baud(921600);
+    pc.printf("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
+    init1();
+    
 	
 	// There is no real time operating system on the modem, but rather an infinite loop "Arduino style"
 	// that runs the various functions of the modem.
 	while(1) {	
-		for (i=0; i<100; i++) {
-			if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {
-				FDDup_RX_FIFO_dequeue();
-			} else {
-				radio_RX_FIFO_dequeue(W5500_p1);
-			}
-			Eth_RX_dequeue(W5500_p1); 
-			TDMA_slave_timeout();
-#ifdef EXT_SRAM_USAGE
-			ext_SRAM_periodic_call();
-#endif
-			if (is_SRAM_ext == 1) {
-				ext_SRAM_periodic_call();
-			}
-			timer_snapshot = slow_timer.read_us();
-			if (timer_snapshot > 666000) {//666000
-				slow_timer.reset();
-				slow_action_counter++;
-				if (slow_action_counter > 2) {slow_action_counter = 0; }
-				
-				if (slow_action_counter == 0) {
-					HMI_periodic_call();
-				}
-				//debug_counter = 0;
-
-				
-				if (slow_action_counter == 1) {//every 2 sec
-					signaling_counter++;
-					if (signaling_counter >= CONF_signaling_period) {
-						signaling_periodic_call();
-						signaling_counter = 0;
-					}
-				}
-				
-				if (slow_action_counter == 2) {
-					DHCP_ARP_periodic_free_table();
-					W5500_re_configure_periodic_call(W5500_p1);
-				
-					temperature_timer++;
-					if(temperature_timer > 15) {// 15 every 30 sec
-						temperature_timer = 0;
-						G_need_temperature_check = 1;
-						SI4463_periodic_temperature_check_2();//SI4463_periodic_temperature_check(G_SI4463);
-					}
-				}
-			}
-		}
-		
-		if (is_TDMA_master) {
-			if (CONF_radio_state_ON_OFF==1) {LED_connected.write((timer_snapshot >> 19) & 1);}
-			else {LED_connected.write(0);}
-		} else {
-			if (my_client_radio_connexion_state == 2) {
-				LED_connected.write(1);
-			}else{
-				LED_connected.write(0);
-			}
-		}
-		if (is_telnet_active) {
-			
-			telnet_counter++;
-			if (telnet_counter>10) {
-				telnet_loop(W5500_p1);
-				telnet_counter = 0;
-			}
-		}
-		serial_term_loop();
-
-		snmp_loop(W5500_p1);
-		
-		if ( (LAN_conf_applied.DHCP_server_active == 1) && (!is_TDMA_master) ) {
-			DHCP_server(LAN_conf_p, W5500_p1);
-		}
+		loop();
 	}
 }
+#endif

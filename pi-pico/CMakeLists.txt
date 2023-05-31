@@ -34,6 +34,7 @@ set(NPR70_COMMON_SOURCES
     ../source/L1L2_radio.cpp
     ../source/TDMA.cpp
     ../source/signaling.cpp
+    ../source/main.cpp
 )
 
 set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.c littlefs.c wget.c flash.c jsonconf.cpp)

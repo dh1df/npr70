@@ -36,6 +36,8 @@ public:
   SPI(void * port);
   SPI(void * port, int miso, int clk, int mosi);
   void transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int rx_len);
+  void format(int f1, int f2);
+  void frequency(int freq);
 };
 
 class Timeout {
@@ -88,6 +90,7 @@ class DigitalInOut : public DigitalOut {
 public:
   DigitalInOut(int pin);
   void output(void);
+  void input(void);
 };
 
 // typedef int DigitalOut;

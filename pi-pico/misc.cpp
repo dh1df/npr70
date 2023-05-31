@@ -69,6 +69,14 @@ void SPI::transfer_2(const unsigned char *tx, int tx_len, unsigned char *rx, int
         }
 }
 
+void SPI::frequency(int freq)
+{
+}
+
+void SPI::format(int f1, int f2)
+{
+}
+
 static bool timeout_callback(repeating_timer_t *t)
 {
 	// debug("timeout_callback %p %p\r\n",t,t->user_data);
@@ -94,7 +102,9 @@ void Timeout::attach_us (void (*func)(void), us_timestamp_t t)
 
 void Timeout::trigger(void)
 {
+#if 0
 	func();
+#endif
 }
 
 Timer::Timer(void)
@@ -149,6 +159,11 @@ void DigitalInOut::output(void)
 	gpio_set_dir(pin, GPIO_OUT);
 }
 
+void DigitalInOut::input(void)
+{
+	gpio_set_dir(pin, GPIO_IN);
+}
+
 
 void DigitalOut::write(int value)
 {
@@ -178,7 +193,11 @@ void InterruptIn::rise(void (*func)(void))
 void InterruptIn::fall(void (*func)(void))
 {
 	debug("InterruptIn::fall %d\r\n",this->read());
+#if 0
 	this->event=GPIO_IRQ_LEVEL_LOW;
+#else
+	this->event=GPIO_IRQ_EDGE_FALL;
+#endif
 	this->func=func;
 	gpio_set_irq_enabled_with_callback(this->pin, this->event, true, irq_callback);
 }

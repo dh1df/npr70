@@ -23,6 +23,7 @@
 /* 20 */
 #define LED_CONN_PIN 21
 #define LED_RX_PIN 22
+#define LED_PIN 25
 #define RANDOM_PIN 26
 #define ENC_PIN_INT 27
 /* 28 */
