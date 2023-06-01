@@ -77,12 +77,12 @@ void SPI::format(int f1, int f2)
 {
 }
 
-static bool timeout_callback(repeating_timer_t *t)
+static int64_t timeout_callback(alarm_id_t id, void *user_data)
 {
-	// debug("timeout_callback %p %p\r\n",t,t->user_data);
-	Timeout *timeout=(Timeout *)t->user_data;
+	// debug("timeout_callback %d %p\r\n",id,user_data);
+	Timeout *timeout=(Timeout *)user_data;
 	timeout->trigger();
-	return true;
+	return 0;
 }
 
 Timeout::Timeout(void)
@@ -94,17 +94,16 @@ void Timeout::attach_us (void (*func)(void), us_timestamp_t t)
 {
         // debug("attach_us %d %p %p\r\n",t,&timer,this);
 	if (active)
-		cancel_repeating_timer(&timer);
+		cancel_alarm(alarm);
 	this->func=func;
-	add_repeating_timer_us(t, timeout_callback, this, &timer);
+	alarm=add_alarm_in_us(t, timeout_callback, this, true);
 	active=true;
 }
 
 void Timeout::trigger(void)
 {
-#if 0
+	active=false;
 	func();
-#endif
 }
 
 Timer::Timer(void)

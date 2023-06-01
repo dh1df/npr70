@@ -41,7 +41,7 @@ public:
 };
 
 class Timeout {
-   repeating_timer_t timer;
+   alarm_id_t alarm;
    bool active;
    void (*func)(void);
 public:
