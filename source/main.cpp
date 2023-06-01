@@ -300,7 +300,7 @@ void init1(void)
 	
 }
 
-#if 0
+#ifndef HAVE_MAIN_H
 int main()
 {
     wait_ms(200);

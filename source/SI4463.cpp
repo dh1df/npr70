@@ -698,7 +698,6 @@ void SI4463_RX_IT() {
 	int t_rehabilit_interrupt;
 	unsigned char clear_IT_PH;
 	unsigned char clear_IT_modem;
-	int irq = *(G_SI4463->interrupt);
 	
 	Treated_SYNC_detected = 0;
 	Treated_FIFO_almost_full = 0;

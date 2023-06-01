@@ -302,6 +302,9 @@ int main()
 	stdio_uart_init();
 #else
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
+	wait_ms(200);
+	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
+
 #endif
 	debug("init_spi()\r\n");
 	init_spi();
