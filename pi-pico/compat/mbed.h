@@ -7,6 +7,9 @@ extern "C" {
 #include "npr70piextra.h"
 }
 
+#define INT_SRAM_SIZE (128*1024)
+extern unsigned char int_sram[INT_SRAM_SIZE];
+
 #define SERIAL_TX 0
 #define SERIAL_RX 0
 class Serial {

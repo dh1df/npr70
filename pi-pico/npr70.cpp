@@ -139,6 +139,10 @@ cmd_test(struct context *ctx)
 		}
 	}
 #endif
+#if 0
+	config_test();
+	config_read((char *)int_sram, INT_SRAM_SIZE);
+#endif
 	return 3;
 }
 

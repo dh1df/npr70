@@ -1025,14 +1025,15 @@ void HMI_periodic_call (void) {
 	}
 }
 
-void HMI_printf_detail (const char *str) {
-	int size;
+void HMI_cwrite(struct context *ctx, const char *buffer, int size) {
 	if (is_telnet_opened) {
-		size = strlen (str);
-		W5500_write_TX_buffer (W5500_p1, TELNET_SOCKET, (unsigned char*)str, size, 0);
-	}
-	else {
-		printf("%s", str);
+		W5500_write_TX_buffer (W5500_p1, TELNET_SOCKET, (unsigned char*)buffer, size, 0);
+	} else {
+		fwrite(buffer,size,1,stdout);
 		fflush(stdout);
 	}
+}
+
+void HMI_printf_detail (const char *str) {
+	HMI_cwrite(NULL, str, strlen(str));
 }

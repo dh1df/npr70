@@ -79,8 +79,12 @@ void HMI_print_who(void);
 void HMI_periodic_call(void);
 
 #ifdef __cplusplus
-extern "C" 
+extern "C" {
 #endif
 void HMI_printf_detail (const char *str);
+void HMI_cwrite(struct context *c, const char *buffer, int size);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

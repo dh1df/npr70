@@ -79,5 +79,16 @@ int cmd_rm(struct context *ctx)
 
 int cmd_cat(struct context *ctx)
 {
+	char buffer[256];
+	int file=pico_open(ctx->s1, LFS_O_RDONLY);
+	if (file < 0)
+		return file;
+	for (;;) {
+		int size=pico_read(file, buffer, sizeof(buffer));
+		if (!size)
+			break;
+		HMI_cwrite(ctx, buffer, size);	
+	}
+	pico_close(file);
 	return 3;
 }

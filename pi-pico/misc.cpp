@@ -6,15 +6,15 @@
 #include "../source/DHCP_ARP.h"
 #include "mbed.h"
 
-static unsigned char sram[128*1024];
+unsigned char int_sram[INT_SRAM_SIZE];
 
 void ext_SRAM_read2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size)
 {
-	memcpy(loc_data, sram+address, size);
+	memcpy(loc_data, int_sram+address, size);
 }
 void ext_SRAM_write2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size)
 {
-	memcpy(sram+address, loc_data, size);
+	memcpy(int_sram+address, loc_data, size);
 }
 
 void NVIC_SystemReset(void)
