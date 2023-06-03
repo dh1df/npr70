@@ -1,8 +1,7 @@
 #include <stdarg.h>
 #include "mbed.h"
 #include "pico_hal.h"
-#include "../source/global_variables.h"
-#include "../source/HMI_telnet.h"
+#include "npr70.h"
 #include "../source/config_flash.h"
 #include "../source/TDMA.h"
 
@@ -37,7 +36,6 @@ struct config {
 	void *dest;
 	const char *deflt;
 } config[]={
-/* OK */
 	CONF_BOOL(is_master,is_TDMA_master,"false"),
 	CONF_STRING13(callsign,CONF_radio_my_callsign+2,"N0CALL-1       "),
 	CONF_BOOL(telnet_last_active,is_telnet_active,"true"),
@@ -210,7 +208,6 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 
 	if (internal_mac_ls_bytes == 0x0 || internal_mac_ls_bytes == 0xffff) {
 		internal_mac_ls_bytes = (NFPR_random_generator(analog_pin) << 8) + NFPR_random_generator(analog_pin);
-		debug("mac bytes 0x%x\r\n",internal_mac_ls_bytes);
 		do_save=1;
 	}
 
@@ -228,7 +225,6 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 	CONF_radio_my_callsign[15] = '\0';
 
         CONF_frequency_HD = (internal_frequency-FREQ_RANGE_MIN)*1000;
-	debug("freq %f %d %d %d\r\n",internal_frequency,CONF_frequency_HD,FREQ_RANGE_MIN,FREQ_MAX_RAW);
         if ( (CONF_frequency_HD == 0x0000) || (CONF_frequency_HD > FREQ_MAX_RAW) ) {
                 CONF_frequency_HD = CONF_DEF_FREQ; // force to default frequency
         }
@@ -246,6 +242,9 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 		my_client_radio_connexion_state = 1;
 		my_radio_client_ID = 0x7E;
         }
+	if (do_save) {
+		NFPR_config_save();
+	}
 	return 0;
 }
 
@@ -296,11 +295,7 @@ NFPR_config_save(void)
 		return -1;
 	}
 
-#if 0
-	int file=pico_open("config.json",LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
-#else
-	int file=0;
-#endif
+	int file=pico_open("config.json2",LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
 	
 	internal_modulation=( (CONF_frequency_band << 6) & 0xC0) + (CONF_radio_modulation & 0x3F);
 	internal_shift=CONF_freq_shift/1000;
@@ -353,6 +348,7 @@ NFPR_config_save(void)
 	if (file) {
 		pico_fflush(file);
 		pico_close(file);
+		pico_rename("config.json2","config.json");
 	}
 	return 0;
 }

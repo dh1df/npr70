@@ -1,13 +1,18 @@
-#include "enchw.h"
-#include "enc28j60.h"
+#include "mbed.h"
 #include "npr70piconfig.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include "lwip/init.h"
 #include "lwip/ip.h"
 #include "netif/etharp.h"
-#include "netif/mchdrv.h"
+#include "../source/global_variables.h"
 #include "common.h"
+
+extern "C" {
+#include "enchw.h"
+#include "enc28j60.h"
+#include "netif/mchdrv.h"
+};
 
 static enc_device_t dev;
 
@@ -30,15 +35,14 @@ void enchw_init(void)
 	return 0;
 #endif
 	struct netif *netif=&netif_data_eth;
+	int i;
+
 	netif->name[0] = 'e';
         netif->name[1] = 'n';
         netif->hwaddr_len = 6;
-        netif->hwaddr[0]=0xf8;
-        netif->hwaddr[1]=0x0b;
-        netif->hwaddr[2]=0x35;
-        netif->hwaddr[3]=0x6b;
-        netif->hwaddr[4]=0xd6;
-        netif->hwaddr[5]=0x6d;
+	for (i = 0 ; i < 6 ; i++)
+		netif->hwaddr[i]=CONF_modem_MAC[i];
+	netif->hwaddr[3]++;
 	netif = netif_add(netif, &ipaddr, &netmask, &gateway, &dev, mchdrv_init, ethernet_input);
 	netif->flags |= NETIF_FLAG_UP | NETIF_FLAG_ETHERNET;
 }

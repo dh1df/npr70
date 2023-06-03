@@ -217,5 +217,5 @@ AnalogIn::AnalogIn(int pin)
 
 unsigned short AnalogIn::read_u16(void)
 {
-	return adc_read();
+	return adc_read() << 4;
 }

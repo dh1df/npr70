@@ -11,16 +11,14 @@
 #include "lwip/tcp.h"
 #include "W5500_lwip.h"
 #include "npr70piconfig.h"
+#include "npr70.h"
 #include "../source/config_flash.h"
 #include "../source/SI4463.h"
-#include "../source/global_variables.h"
 #include "../source/TDMA.h"
 #include "../source/L1L2_radio.h"
-#include "../source/HMI_telnet.h"
 #include "../source/DHCP_ARP.h"
 #include "../source/signaling.h"
 #include "../source/Eth_IPv4.h"
-#include "mbed.h"
 #include "common.h"
 #include "main.h"
 
@@ -153,7 +151,6 @@ int main()
 	wait_ms(200);
 	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
 
-	debug("littlefs_init()\r\n");
 	littlefs_init();
 	NFPR_config_read(&Random_pin);
 

@@ -29,7 +29,6 @@ set(NPR70_COMMON_SOURCES
     ../source/DHCP_ARP.cpp
     ../source/global_variables.cpp
     ../source/Eth_IPv4.cpp
-    # ../source/config_flash.cpp
     ../source/SI4463.cpp
     ../source/L1L2_radio.cpp
     ../source/TDMA.cpp
@@ -37,7 +36,7 @@ set(NPR70_COMMON_SOURCES
     ../source/main.cpp
 )
 
-set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.c littlefs.c wget.c flash.c jsonconf.cpp)
+set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.cpp littlefs.c wget.c flash.c jsonconf.cpp)
 
 set_source_files_properties(littlefs-lib/pico-hal.c PROPERTIES COMPILE_DEFINITIONS bool=uint8_t)
 add_subdirectory(littlefs-lib)
