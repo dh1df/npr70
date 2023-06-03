@@ -4,6 +4,7 @@
 #include "../source/global_variables.h"
 #include "../source/HMI_telnet.h"
 #include "../source/config_flash.h"
+#include "../source/TDMA.h"
 
 enum type {
 	TYPE_BOOL,
@@ -233,14 +234,12 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
         }
 	CONF_freq_shift = internal_shift*1000;
 	LAN_conf_applied=LAN_conf_saved;
-#if 0
         if ( (is_TDMA_master) && (CONF_master_FDD == 1) ) { // FDD Master down
                 G_FDD_trig_pin->output();
         }
         if ( (is_TDMA_master) && (CONF_master_FDD == 2) ) {// FDD master up
                 G_FDD_trig_IRQ->rise(&TDMA_FDD_up_top_measure);
         }
-#endif
 	if (is_TDMA_master) {
 		my_client_radio_connexion_state = 2;
 	} else {
