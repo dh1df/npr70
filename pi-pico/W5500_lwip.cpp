@@ -331,9 +331,9 @@ cmd_display_net(struct context *ctx)
 			HMI_printf("ETHERNET ");
 		}
 		ip_addr=netif->ip_addr.addr;
-		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
 		ip_addr=netif->netmask.addr;
-		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24)
+		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
 		HMI_cprintf(ctx,"%d %02x:%02x:%02x:%02x:%02x:%02x\r\n", netif->hwaddr_len, h[0], h[1], h[2], h[3], h[4], h[5]);
 		
 		netif=netif->next;
