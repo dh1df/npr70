@@ -32,13 +32,6 @@ void wait_us(us_timestamp_t us)
 	busy_wait_us(us);
 }
 
-void misc_loop(void)
-{
-	telnet_loop(NULL); 
-	serial_term_loop();
-	DHCP_server(&LAN_conf_applied, W5500_p1);
-}
-
 void call_bootloader(void)
 {
 	reset_usb_boot(0,0);

@@ -116,7 +116,7 @@ int cmd_cp(struct context *ctx)
 		int size2,size1=pico_read(file1, buffer, sizeof(buffer));
 		if (!size2)
 			break;
-		size2=pico_write(file1, buffer, size1);
+		size2=pico_write(file2, buffer, size1);
 		if (size2 != size1) {
 			ret=LFS_ERR_NOSPC;
 			break;

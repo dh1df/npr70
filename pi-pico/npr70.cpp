@@ -147,6 +147,7 @@ cmd_test(struct context *ctx)
 int main()
 {
 	int i;
+	int wifi=0;
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	wait_ms(200);
 	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
@@ -162,6 +163,7 @@ int main()
 #if 1
 	// Initialize tinyusb, lwip, dhcpd and httpd
 	if (cyw43_arch_init()) {
+		wifi=0;
 		printf("failed to initialise\n");
 	}
 #else
@@ -169,7 +171,8 @@ int main()
 #endif
 	tud_setup();
 	enchw_init();
-	init_wifi();
+	if (wifi) 
+		init_wifi();
 	bridge_setup();
 
 	gpio_init(LED_PIN);
@@ -182,7 +185,6 @@ int main()
 		loop();
 		tud_task();
 		service_traffic();
-		misc_loop();
 		cyw43_arch_poll();
 		enchw_poll();
 	}

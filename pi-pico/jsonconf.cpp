@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include "pico/unique_id.h"
 #include "mbed.h"
 #include "pico_hal.h"
 #include "npr70.h"
@@ -126,6 +127,91 @@ json_get(struct json_doc *doc, const char *key, char *value, int value_size)
 	return 0;
 }
 
+void
+config_write(int file, const char *str, ...)
+{
+	va_list ap;
+        char buffer[128];
+        va_start(ap, str);
+        vsnprintf(buffer, sizeof(buffer), str, ap);
+	if (file)
+		pico_write(file, buffer, strlen(buffer));
+	else
+		HMI_cwrite(NULL, buffer, strlen(buffer));
+        va_end(ap);
+}
+
+int
+config_save(void)
+{
+	int i,diff;
+	char val[32];
+	uint8_t u8;
+	uint16_t u16;
+	uint32_t u32;
+	float fl;
+	char *s;
+	unsigned char *ip;
+	int first=1;
+
+
+	int file=pico_open("config.json2",LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
+	
+	internal_modulation=( (CONF_frequency_band << 6) & 0xC0) + (CONF_radio_modulation & 0x3F);
+	internal_shift=CONF_freq_shift/1000;
+	internal_frequency=((float)CONF_frequency_HD/1000)+FREQ_RANGE_MIN;
+	internal_mac_ls_bytes=CONF_modem_MAC[4] * 256 + CONF_modem_MAC[5];
+	
+	config_write(file,"{");
+	for (i = 0 ; i < sizeof(config)/sizeof(config[0]) ; i++) {
+		const char *quote="";
+		val[0]='\0';
+		switch(config[i].type) {
+		case TYPE_BOOL:
+		case TYPE_UINT8:
+			u8=*((uint8_t *)config[i].dest);
+			if (config[i].type == TYPE_UINT8)
+				snprintf(val,sizeof(val),"%d",u8);
+			else
+				strcpy(val,u8?"true":"false");
+			break;
+		case TYPE_UINT16:
+			u16=*((uint16_t *)config[i].dest);
+			snprintf(val,sizeof(val),"%d",u16);
+			break;
+		case TYPE_UINT32:
+			u32=*((uint32_t *)config[i].dest);
+			snprintf(val,sizeof(val),"%d",u32);
+			break;
+		case TYPE_IP:
+			quote="\"";
+			ip=(unsigned char *)config[i].dest;
+			snprintf(val,sizeof(val),"%d.%d.%d.%d",ip[3],ip[2],ip[1],ip[0]);
+			break;
+		case TYPE_FREQUENCY:
+		case TYPE_SHIFT:
+			fl=*(float *)config[i].dest;
+			snprintf(val,sizeof(val),"%.3f",fl);
+			break;
+		case TYPE_STRING13:
+			quote="\"";
+			s=(char *)config[i].dest;
+			snprintf(val,sizeof(val),"%s",s);
+			break;
+		}
+		if (strcmp(val,config[i].deflt)) {
+			config_write(file,"%s\r\n\"%s\": %s%s%s",first?"":",",config[i].name,quote,val,quote);
+			first=0;
+		}
+	}
+	config_write(file,"\r\n}\r\n");
+	if (file) {
+		pico_fflush(file);
+		pico_close(file);
+		pico_rename("config.json2","config.json");
+	}
+	return 0;
+}
 
 int
 config_read(char *buffer, int size, AnalogIn* analog_pin)
@@ -207,7 +293,10 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 	CONF_frequency_band = (internal_modulation & 0xC0) >> 6;
 
 	if (internal_mac_ls_bytes == 0x0 || internal_mac_ls_bytes == 0xffff) {
-		internal_mac_ls_bytes = (NFPR_random_generator(analog_pin) << 8) + NFPR_random_generator(analog_pin);
+		pico_unique_board_id_t id;
+		pico_get_unique_board_id(&id);
+		internal_mac_ls_bytes = ((NFPR_random_generator(analog_pin)^id.id[PICO_UNIQUE_BOARD_ID_SIZE_BYTES-1]) << 8) +
+                                          (NFPR_random_generator(analog_pin)^id.id[PICO_UNIQUE_BOARD_ID_SIZE_BYTES-2]);
 		do_save=1;
 	}
 
@@ -243,23 +332,9 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 		my_radio_client_ID = 0x7E;
         }
 	if (do_save) {
-		NFPR_config_save();
+		config_save();
 	}
 	return 0;
-}
-
-void
-config_write(int file, const char *str, ...)
-{
-	va_list ap;
-        char buffer[128];
-        va_start(ap, str);
-        vsnprintf(buffer, sizeof(buffer), str, ap);
-	if (file)
-		pico_write(file, buffer, strlen(buffer));
-	else
-		HMI_cwrite(NULL, buffer, strlen(buffer));
-        va_end(ap);
 }
 
 unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
@@ -280,77 +355,11 @@ unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
 unsigned int
 NFPR_config_save(void)
 {
-	int i,diff;
-	char val[32];
-	uint8_t u8;
-	uint16_t u16;
-	uint32_t u32;
-	float fl;
-	char *s;
-	unsigned char *ip;
-	int first=1;
-
         if ( (CONF_radio_my_callsign[0] == 0) || (CONF_radio_my_callsign[2] == 0) ) {
                 HMI_printf("ERROR : not yet configured\r\n");
 		return -1;
 	}
-
-	int file=pico_open("config.json2",LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
-	
-	internal_modulation=( (CONF_frequency_band << 6) & 0xC0) + (CONF_radio_modulation & 0x3F);
-	internal_shift=CONF_freq_shift/1000;
-	internal_frequency=((float)CONF_frequency_HD/1000)+FREQ_RANGE_MIN;
-	internal_mac_ls_bytes=CONF_modem_MAC[4] * 256 + CONF_modem_MAC[5];
-	
-	config_write(file,"{");
-	for (i = 0 ; i < sizeof(config)/sizeof(config[0]) ; i++) {
-		const char *quote="";
-		val[0]='\0';
-		switch(config[i].type) {
-		case TYPE_BOOL:
-		case TYPE_UINT8:
-			u8=*((uint8_t *)config[i].dest);
-			if (config[i].type == TYPE_UINT8)
-				snprintf(val,sizeof(val),"%d",u8);
-			else
-				strcpy(val,u8?"true":"false");
-			break;
-		case TYPE_UINT16:
-			u16=*((uint16_t *)config[i].dest);
-			snprintf(val,sizeof(val),"%d",u16);
-			break;
-		case TYPE_UINT32:
-			u32=*((uint32_t *)config[i].dest);
-			snprintf(val,sizeof(val),"%d",u32);
-			break;
-		case TYPE_IP:
-			quote="\"";
-			ip=(unsigned char *)config[i].dest;
-			snprintf(val,sizeof(val),"%d.%d.%d.%d",ip[3],ip[2],ip[1],ip[0]);
-			break;
-		case TYPE_FREQUENCY:
-		case TYPE_SHIFT:
-			fl=*(float *)config[i].dest;
-			snprintf(val,sizeof(val),"%.3f",fl);
-			break;
-		case TYPE_STRING13:
-			quote="\"";
-			s=(char *)config[i].dest;
-			snprintf(val,sizeof(val),"%s",s);
-			break;
-		}
-		if (strcmp(val,config[i].deflt)) {
-			config_write(file,"%s\r\n\"%s\": %s%s%s",first?"":",",config[i].name,quote,val,quote);
-			first=0;
-		}
-	}
-	config_write(file,"\r\n}\r\n");
-	if (file) {
-		pico_fflush(file);
-		pico_close(file);
-		pico_rename("config.json2","config.json");
-	}
-	return 0;
+	return config_save();
 }
 
 void NFPR_config_read(AnalogIn* analog_pin) {
