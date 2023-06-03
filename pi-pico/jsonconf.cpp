@@ -5,7 +5,6 @@
 #include "../source/HMI_telnet.h"
 #include "../source/config_flash.h"
 
-#if 0
 enum type {
 	TYPE_BOOL,
 	TYPE_UINT8,
@@ -14,7 +13,7 @@ enum type {
 	TYPE_IP,
 	TYPE_FREQUENCY,
 	TYPE_SHIFT,
-	TYPE_STRING15,
+	TYPE_STRING13,
 };
 
 #define CONF_BOOL(name,var,def) {#name,TYPE_BOOL,&var,def}
@@ -24,7 +23,7 @@ enum type {
 #define CONF_IP(name,var,def) {#name,TYPE_IP,&var,def}
 #define CONF_FREQUENCY(name,var,def) {#name,TYPE_FREQUENCY,&var,def}
 #define CONF_SHIFT(name,var,def) {#name,TYPE_SHIFT,&var,def}
-#define CONF_STRING15(name,var,def) {#name,TYPE_STRING15,var,def}
+#define CONF_STRING13(name,var,def) {#name,TYPE_STRING13,var,def}
 
 static uint8_t internal_modulation;
 static float internal_frequency;
@@ -37,8 +36,9 @@ struct config {
 	void *dest;
 	const char *deflt;
 } config[]={
+/* OK */
 	CONF_BOOL(is_master,is_TDMA_master,"false"),
-	CONF_STRING15(callsign,CONF_radio_my_callsign+2,"N0CALL-1       "),
+	CONF_STRING13(callsign,CONF_radio_my_callsign+2,"N0CALL-1       "),
 	CONF_BOOL(telnet_last_active,is_telnet_active,"true"),
 	CONF_UINT8(modulation,internal_modulation,"24"),
 	CONF_FREQUENCY(frequency,internal_frequency,"437.000"),
@@ -180,8 +180,8 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 			f=atof(s);
 			ptr=&f;
 			break;
-		case TYPE_STRING15:
-			size=15;
+		case TYPE_STRING13:
+			size=13;
 			if (val) {
 				ptr=val;
 				callsign_present=1;
@@ -224,6 +224,7 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 		CONF_radio_my_callsign[0] = CONF_modem_MAC[4];
 		CONF_radio_my_callsign[1] = CONF_modem_MAC[5];
 	}
+	CONF_radio_my_callsign[15] = '\0';
 
         CONF_frequency_HD = (internal_frequency-FREQ_RANGE_MIN)*1000;
 	debug("freq %f %d %d %d\r\n",internal_frequency,CONF_frequency_HD,FREQ_RANGE_MIN,FREQ_MAX_RAW);
@@ -338,7 +339,7 @@ NFPR_config_save(void)
 			fl=*(float *)config[i].dest;
 			snprintf(val,sizeof(val),"%.3f",fl);
 			break;
-		case TYPE_STRING15:
+		case TYPE_STRING13:
 			quote="\"";
 			s=(char *)config[i].dest;
 			snprintf(val,sizeof(val),"%s",s);
@@ -366,5 +367,3 @@ void NFPR_config_read(AnalogIn* analog_pin) {
                 my_radio_client_ID = 0x7E;
         }
 }
-#endif
-

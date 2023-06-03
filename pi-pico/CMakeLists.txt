@@ -29,7 +29,7 @@ set(NPR70_COMMON_SOURCES
     ../source/DHCP_ARP.cpp
     ../source/global_variables.cpp
     ../source/Eth_IPv4.cpp
-    ../source/config_flash.cpp
+    # ../source/config_flash.cpp
     ../source/SI4463.cpp
     ../source/L1L2_radio.cpp
     ../source/TDMA.cpp
