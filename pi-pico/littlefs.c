@@ -15,6 +15,7 @@ void littlefs_init(void)
 	}
 }
 
+#ifndef HAVE_JSON_CONFIG
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index)
 {
 	int ret,file=pico_open("config.bin",LFS_O_CREAT|LFS_O_RDWR);
@@ -51,6 +52,13 @@ unsigned int virt_EEPROM_read(void *data)
 	}
 	return 0;
 }
+#else
+void virt_EEPROM_errase_all(void)
+{
+	pico_remove("config.json");
+}
+
+#endif
 
 int cmd_ls(struct context *ctx)
 {
@@ -91,4 +99,30 @@ int cmd_cat(struct context *ctx)
 	}
 	pico_close(file);
 	return 3;
+}
+
+int cmd_cp(struct context *ctx)
+{
+	char buffer[256];
+	int file1,file2;
+	int ret=3;
+	file1=pico_open(ctx->s1, LFS_O_RDONLY);
+	if (file1 < 0)
+		return file1;
+	file2=pico_open(ctx->s2, LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
+	if (file2 < 0)
+		return file2;
+	for (;;) {
+		int size2,size1=pico_read(file1, buffer, sizeof(buffer));
+		if (!size2)
+			break;
+		size2=pico_write(file1, buffer, size1);
+		if (size2 != size1) {
+			ret=LFS_ERR_NOSPC;
+			break;
+		}
+	}
+	pico_close(file2);
+	pico_close(file1);
+	return ret;
 }

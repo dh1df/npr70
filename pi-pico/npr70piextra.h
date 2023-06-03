@@ -8,6 +8,7 @@
 #define HAVE_MAIN_H 1
 #define HAVE_NO_W5500 1
 #define HAVE_NO_SNMP 1
+#define HAVE_JSON_CONFIG 1
 
 void debug(const char *str, ...);
 struct context;
@@ -16,6 +17,7 @@ int cmd_test(struct context *c);
 int cmd_ls(struct context *c);
 int cmd_rm(struct context *c);
 int cmd_cat(struct context *c);
+int cmd_cp(struct context *c);
 int cmd_wget(struct context *c);
 int cmd_flash(struct context *c);
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);

@@ -38,10 +38,11 @@ struct command {
   int (*func)(struct context *ctx);
 };
 
-#define HMI_printf(param, ...) snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
-	HMI_printf_detail(HMI_out_str);
+#define HMI_printf(param, ...) do {snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
+	HMI_printf_detail(HMI_out_str);} while(0)
 
-#define HMI_cprintf(ctx, param, ...) HMI_printf(param, ##__VA_ARGS__)
+#define HMI_cprintf(ctx, param, ...) do {snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
+	HMI_cwrite(ctx, HMI_out_str, strlen(HMI_out_str));} while(0)
 
 
 int serial_term_loop (void);
