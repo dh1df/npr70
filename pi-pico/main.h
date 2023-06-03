@@ -13,3 +13,4 @@ extern DigitalOut PTT_PA_pin;
 
 extern void loop(void);
 extern void init1(void);
+extern void init2(void);

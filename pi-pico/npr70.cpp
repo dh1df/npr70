@@ -153,11 +153,14 @@ int main()
 	wait_ms(200);
 	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
 
+	debug("littlefs_init()\r\n");
+	littlefs_init();
+	NFPR_config_read(&Random_pin);
+
 	debug("init_spi()\r\n");
 	init_spi();
-	debug("littlefs_init()\r\n");
-	littlefs_init();	
 	init1();
+	init2();
 
 #if 1
 	// Initialize tinyusb, lwip, dhcpd and httpd

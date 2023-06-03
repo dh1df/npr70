@@ -260,7 +260,11 @@ void init1(void)
 	}
 	
 	wait_ms(100);
-	NFPR_config_read(&Random_pin);
+}
+
+void init2(void)
+{
+	int i;
 
 	//SI4463_print_version(G_SI4463);//!!!!
 	SI4463_get_state(G_SI4463);
@@ -307,6 +311,10 @@ int main()
 	pc.baud(921600);
     pc.printf("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
     init1();
+    NFPR_config_read(&Random_pin);
+    init2();
+
+
     
 	
 	// There is no real time operating system on the modem, but rather an infinite loop "Arduino style"
