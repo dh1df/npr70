@@ -28,13 +28,19 @@ struct enc28j60 enc28j60 = {
 
 void enchw_poll(void)
 {
+	if (gpio_get(ENC_PIN_INT))
+		return;
 	enc28j60_isr_begin(&enc28j60);
 	uint8_t flags = enc28j60_interrupt_flags(&enc28j60);
 
 	if (flags & ENC28J60_PKTIF) {
 		struct pbuf *packet = low_level_input(&netif_data_eth);
-		if (packet != NULL) 
-			netif_data_eth.input(packet, &netif_data_eth);
+		if (packet != NULL) {
+			if(netif_data_eth.input(packet, &netif_data_eth) != ERR_OK) {
+                                LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+                        }
+			pbuf_free(packet);
+		}
 	}
 
 	if (flags & ENC28J60_TXERIF) {
@@ -58,5 +64,5 @@ void enchw_init(void)
 	netif_add(netif, &ipaddr, &netmask, &gateway, &enc28j60, ethernetif_init, netif_input);
         netif_set_up(netif);
         netif_set_link_up(netif);
-
+	enc28j60_interrupts(&enc28j60, ENC28J60_PKTIE | ENC28J60_TXERIE | ENC28J60_RXERIE);
 }
