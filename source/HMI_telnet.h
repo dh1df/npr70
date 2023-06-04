@@ -51,6 +51,8 @@ void HMI_line_parse (char* RX_text, int RX_text_count);
 
 void HMI_cancel_current(void);
 
+int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help);
+
 
 
 int HMI_check_radio_OFF(void);

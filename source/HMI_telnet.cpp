@@ -44,18 +44,7 @@ static struct command commands[]={
 #endif
 };
 
-static int telnet_command_parse(struct context *ctx, const char *s, struct command *cmd, int len)
-{
-	int i;
-	for (i = 0 ; i < len ; i++) {
-		if (!strcmp(cmd->cmd, s))
-			return cmd->func(ctx);
-		cmd++;
-	}
-	return 0;
-}
-
-static int telnet_command_help(struct context *ctx, struct command *cmd, int len)
+static int HMI_command_help(struct context *ctx, struct command *cmd, int len)
 {
 	int i;
 	for (i = 0 ; i < len ; i++) {
@@ -64,6 +53,20 @@ static int telnet_command_help(struct context *ctx, struct command *cmd, int len
 	}
 	return 0;
 }
+
+int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help)
+{
+	int i;
+	if (help && !strcmp(s,"help"))
+		return HMI_command_help(ctx, cmd, len);
+	for (i = 0 ; i < len ; i++) {
+		if (!strcmp(cmd->cmd, s))
+			return cmd->func(ctx);
+		cmd++;
+	}
+	return 0;
+}
+
 
 /**
  * Called regularly by the main loop, and manages network events (new connection,
@@ -376,7 +379,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 			HMI_exit();
 		}
 		if (command_understood == 0)
-			command_understood=telnet_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]));
+			command_understood=HMI_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]), 0);
 		if (strcmp(loc_command_str, "help") == 0) {
 			command_understood = 1;
 			HMI_printf_detail(
@@ -399,7 +402,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 					"version\r\n"
 					"exit|quit\r\n"
 			);
-			telnet_command_help(&ctx, commands, sizeof(commands)/sizeof(commands[0]));
+			HMI_command_help(&ctx, commands, sizeof(commands)/sizeof(commands[0]));
 			HMI_printf_detail(
 					"help\r\n"
 					"ready> "

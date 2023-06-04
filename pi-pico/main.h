@@ -16,3 +16,6 @@ extern uint8_t CONF_try_restart;
 extern void loop(void);
 extern void init1(void);
 extern void init2(void);
+
+extern char CONF_wifi_id[32];
+extern char CONF_wifi_passphrase[32];
