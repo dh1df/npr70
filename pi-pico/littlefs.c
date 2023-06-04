@@ -126,3 +126,24 @@ int cmd_cp(struct context *ctx)
 	pico_close(file1);
 	return ret;
 }
+
+int cmd_sum(struct context *ctx)
+{
+	unsigned char buffer[256];
+	int i,total_size,checksum=0,fd=pico_open(ctx->s1,LFS_O_RDONLY);
+        if (fd < 0)
+                return fd;
+        total_size=pico_size(fd);
+	for (;;) {
+		int size=pico_read(fd, buffer, sizeof(buffer));
+		if (!size)
+			break;
+		for (i = 0 ; i < size ; i++) {
+			checksum = (checksum >> 1) + ((checksum & 1) << 15);
+			checksum += buffer[i];
+			checksum &= 0xffff;
+		}
+	}
+	HMI_cprintf(ctx,"%d %d\r\n",checksum,(total_size+1023)/1024);
+	return 3;	
+}

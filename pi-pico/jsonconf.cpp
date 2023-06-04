@@ -225,6 +225,7 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 	float f;
 	struct json_doc doc;
 	err=json_read(&doc,"config.json",buffer,size);
+	memset(CONF_radio_my_callsign, 0, sizeof(CONF_radio_my_callsign));
 	for (i = 0 ; i < sizeof(config)/sizeof(config[0]) ; i++) {
 		const char *name=config[i].name;
 		const char *val=NULL;
@@ -268,9 +269,12 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 		case TYPE_STRING13:
 			size=13;
 			if (val) {
+				debug("callsign:%s(%d)\r\n",val,strlen(val));
 				ptr=val;
 				callsign_present=1;
 			}
+			if (strlen((const char *)ptr) < size)
+				size=strlen((const char *)ptr);
 			break;
 		}
 		if (config[i].type == TYPE_IP) {

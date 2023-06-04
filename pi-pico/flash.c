@@ -53,7 +53,7 @@ static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int
 
 int cmd_flash(struct context *ctx)
 {
-	int total_size,idx=0,fd=pico_open("npr70.bin",LFS_O_RDONLY);
+	int total_size,idx=0,fd=pico_open(ctx->s1,LFS_O_RDONLY);
 	lfs_off_t pos=0;
 	if (fd < 0)
 		return fd;

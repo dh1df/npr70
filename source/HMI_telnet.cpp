@@ -39,17 +39,8 @@ static int slow_counter = 0;
 static unsigned int telnet_last_activity;
 
 static struct command commands[]={
-#ifdef HAVE_CMD_FS
-	{"ls",cmd_ls},
-	{"rm",cmd_rm},
-	{"cat",cmd_cat},
-	{"cp",cmd_cp},
-#endif
-#ifdef HAVE_CMD_FLASH
-	{"flash",cmd_flash},
-#endif
-#ifdef HAVE_CMD_TEST
-	{"test",cmd_test},
+#ifdef CUSTOM_COMMANDS
+	CUSTOM_COMMANDS
 #endif
 };
 

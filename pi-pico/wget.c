@@ -46,12 +46,31 @@ void result_fn(void *arg, httpc_result_t httpc_result, u32_t rx_content_len, u32
 static httpc_connection_t settings;
 int cmd_wget(struct context *ctx)
 {
+	const char *host,*path,*file,*prefix="http://";
+	char hostbuf[128];
+	int hostlen;
 	settings.result_fn = result_fn;
 	settings.headers_done_fn = headers_done_fn;
-	wget_context.fd=pico_open("npr70.bin",LFS_O_WRONLY|LFS_O_CREAT|LFS_O_TRUNC);
+	if (strncmp(ctx->s1,prefix,strlen(prefix)))
+		return  LFS_ERR_INVAL;
+	host=ctx->s1+strlen(prefix);
+	path=strchr(host,'/');
+	if (!path)
+		return LFS_ERR_INVAL;
+	hostlen=path-host;
+	if (hostlen >= sizeof(host))
+		return LFS_ERR_NAMETOOLONG;
+	strncpy(hostbuf, host, hostlen);
+	hostbuf[hostlen]='\0';
+	file=strrchr(ctx->s1,'/');
+	if (!file || !strlen(file))
+		return LFS_ERR_INVAL;
+	wget_context.fd=pico_open(file,LFS_O_WRONLY|LFS_O_CREAT|LFS_O_TRUNC);
+	if (wget_context.fd < 0)
+		return wget_context.fd;
 	wget_context.count=0;
-	err_t err=httpc_get_file_dns("ovs48.de",80,"/firmware/npr70.bin",&settings,recv_fn,&wget_context,&state);
+	err_t err=httpc_get_file_dns(hostbuf,80,path,&settings,recv_fn,&wget_context,&state);
 	if (err != ERR_OK)
-		return -err;
+		return -(err+32);
 	return 3;
 }
