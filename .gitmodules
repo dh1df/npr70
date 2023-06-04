@@ -4,8 +4,8 @@
 [submodule "pi-pico/littlefs-lib"]
 	path = pi-pico/littlefs-lib
 	url = https://github.com/dh1df/littlefs-lib
-[submodule "pi-pico/enc28j60driver"]
-	path = pi-pico/enc28j60driver
-	url = https://gitlab.com/enc28j60driver/enc28j60driver
 [submodule "littlefs-lib"]
 	url = https://github.com/dh1df/littlefs-lib
+[submodule "pi-pico/pico-enc28j60"]
+	path = pi-pico/pico-enc28j60
+	url = https://git.sr.ht/~krystianch/pico-enc28j60

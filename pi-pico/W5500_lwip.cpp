@@ -456,6 +456,7 @@ static err_t radio_netif_init_cb(struct netif *netif)
 	return ERR_OK;
 }
 
+#if 0
 static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 0, 253);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
 static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 0, 65);
@@ -477,3 +478,4 @@ bridge_setup(void)
 	debug("bridge add usb %d\r\n",err);
 	bridge.flags |= NETIF_FLAG_UP;
 }
+#endif

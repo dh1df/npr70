@@ -12,12 +12,11 @@ set(WIFI_PASSWORD "${WIFI_PASSWORD}" CACHE INTERNAL "WiFi password for examples"
 
 set(TUSB_INCLUDE ${PICO_SDK_PATH}/lib/tinyusb/lib/networking)
 
-set(ENC28J60_DIR ${CMAKE_CURRENT_SOURCE_DIR}/enc28j60driver)
+set(ENC28J60_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pico-enc28j60)
 set(ENC28J60_SOURCES
-    ${ENC28J60_DIR}/enc28j60driver/enc28j60.c
-    ${ENC28J60_DIR}/lwip/netif/mchdrv.c
+    ${ENC28J60_DIR}/src/enc28j60.c
+    ${ENC28J60_DIR}/src/ethernetif.c
 )
-set_source_files_properties(${ENC28J60_SOURCES} PROPERTIES COMPILE_DEFINITIONS bool=uint8_t)
 
 set(TINYUSB_LIBNETWORKING_SOURCES
     ${PICO_SDK_PATH}/lib/tinyusb/lib/networking/dhserver.c
@@ -46,7 +45,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WI
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
-target_include_directories(${PROJECT_NAME} PRIVATE . compat ${ENC28J60_DIR}/enc28j60driver ${ENC28J60_DIR}/lwip ${TUSB_INCLUDE} ${LWIP_INCLUDE} ../source/SI4463)
+target_include_directories(${PROJECT_NAME} PRIVATE . compat ${ENC28J60_DIR}/include ${ENC28J60_DIR}/lwip ${TUSB_INCLUDE} ${LWIP_INCLUDE} ../source/SI4463)
 target_link_libraries(${PROJECT_NAME} pico_stdlib hardware_spi hardware_adc pico_unique_id pico_lwip pico_lwip_http pico_cyw43_arch_lwip_poll tinyusb_device littlefs-lib)
 pico_add_extra_outputs(${PROJECT_NAME})
 

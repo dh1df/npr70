@@ -149,6 +149,9 @@ int main()
 	int i;
 	int wifi=0;
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
+	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
+	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
+
 	wait_ms(200);
 	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
 
@@ -173,7 +176,9 @@ int main()
 	enchw_init();
 	if (wifi) 
 		init_wifi();
+#if 0
 	bridge_setup();
+#endif
 
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);
