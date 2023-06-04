@@ -86,7 +86,9 @@ W5500_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 	} else {
 		if (p->len && p->payload) {
 			W5500_enqueue(c, (unsigned char *)p->payload, p->len);
-		}
+	 	}
+		tcp_recved(tpcb, p->tot_len);
+		pbuf_free(p);
 	}
 
 	return 0;

@@ -189,7 +189,6 @@ void service_traffic(void)
     if (received_frame)
     {
       netif_data.input(received_frame, &netif_data);
-      pbuf_free(received_frame);
       received_frame = NULL;
       tud_network_recv_renew();
     }

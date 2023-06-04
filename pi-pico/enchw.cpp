@@ -38,8 +38,8 @@ void enchw_poll(void)
 		if (packet != NULL) {
 			if(netif_data_eth.input(packet, &netif_data_eth) != ERR_OK) {
                                 LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+				pbuf_free(packet);
                         }
-			pbuf_free(packet);
 		}
 	}
 
