@@ -147,7 +147,7 @@ cmd_test(struct context *ctx)
 int main()
 {
 	int i;
-	int wifi=0;
+	int wifi=1;
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
@@ -168,6 +168,12 @@ int main()
 	if (cyw43_arch_init()) {
 		wifi=0;
 		printf("failed to initialise\n");
+	} else {
+		uint32_t pm=0;
+		int err=cyw43_wifi_get_pm(&cyw43_state,&pm);
+		printf("wifi %d %d\r\n",pm,err);
+		if (err)
+			wifi=0;
 	}
 #else
 	lwip_init();

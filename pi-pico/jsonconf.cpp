@@ -3,8 +3,11 @@
 #include "mbed.h"
 #include "pico_hal.h"
 #include "npr70.h"
+#include "main.h"
 #include "../source/config_flash.h"
 #include "../source/TDMA.h"
+
+uint8_t CONF_try_restart;
 
 enum type {
 	TYPE_BOOL,
@@ -62,6 +65,7 @@ struct config {
 	// CONF_UINT16(checksum,CONF_checksum,0),
 	CONF_SHIFT(shift,internal_shift,"0.000"),
 	CONF_IP(master_down_ip,CONF_master_down_IP,"192.168.0.252"),
+	CONF_BOOL(try_restart,CONF_try_restart,"false"),
 };
 
 struct json_doc {

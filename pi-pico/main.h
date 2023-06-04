@@ -11,6 +11,8 @@ extern DigitalInOut FDD_trig_pin;
 extern InterruptIn FDD_trig_IRQ;
 extern DigitalOut PTT_PA_pin;
 
+extern uint8_t CONF_try_restart;
+
 extern void loop(void);
 extern void init1(void);
 extern void init2(void);

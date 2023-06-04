@@ -56,6 +56,8 @@ DigitalOut CS3(PB_0);// CS ext SRAM PB_0
 InterruptIn Int_SI4463(PA_3);
 DigitalOut CS2(PA_4);
 SPI spi_1(PA_7, PA_6, PA_5); // mosi, miso, sclk
+
+static uint8_t CONF_try_restart = 1;
 #endif
 
 static Timer slow_timer; 
@@ -277,9 +279,11 @@ void init2(void)
 	} else {
 		HMI_printf("SI4463 error while configure\r\n");
 		SI4463_print_version(G_SI4463);
-		wait_ms(5000);
-		if (serial_term_loop() == 0) {//no serial char detected
-			NVIC_SystemReset(); //reboot
+		if (CONF_try_restart) {
+			wait_ms(5000);
+			if (serial_term_loop() == 0) {//no serial char detected
+				NVIC_SystemReset(); //reboot
+			}
 		}
 	}
 	//SI4463_print_version(G_SI4463);//!!!!
