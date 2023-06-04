@@ -16,13 +16,13 @@ static err_t recv_fn(void *arg, struct altcp_pcb *conn, struct pbuf *p, err_t er
 	struct wget_context *ctx=arg;
 	lfs_size_t size=pico_write(ctx->fd, p->payload, p->len);
 	if (size == p->len && p->len == p->tot_len) {
-		debug("*");
+		HMI_cprintf(NULL,"*");
 		if (ctx->count++ >= 70) {
 			debug("\r\n");
 			ctx->count=0;		
 		}
 	} else
-		debug("recv_fn2 %d %d %d\r\n",p->tot_len,p->len,size);
+		HMI_cprintf(NULL,"recv_fn2 %d %d %d\r\n",p->tot_len,p->len,size);
 	altcp_recved(conn, p->tot_len);
 	pbuf_free(p);
 	return ERR_OK;
@@ -58,7 +58,7 @@ int cmd_wget(struct context *ctx)
 	if (!path)
 		return LFS_ERR_INVAL;
 	hostlen=path-host;
-	if (hostlen >= sizeof(host))
+	if (hostlen >= sizeof(hostbuf))
 		return LFS_ERR_NAMETOOLONG;
 	strncpy(hostbuf, host, hostlen);
 	hostbuf[hostlen]='\0';

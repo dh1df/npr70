@@ -14,13 +14,16 @@
         {"cp",cmd_cp},\
         {"sum",cmd_sum},
 
+#define HAVE_CMD_WGET\
+        {"wget",cmd_wget},
+
 #define HAVE_CMD_FLASH\
         {"flash",cmd_flash},
 
 #define HAVE_CMD_TEST\
         {"test",cmd_test},
 
-#define CUSTOM_COMMANDS HAVE_CMD_FS HAVE_CMD_FLASH HAVE_CMD_TEST
+#define CUSTOM_COMMANDS HAVE_CMD_WGET HAVE_CMD_FS HAVE_CMD_FLASH HAVE_CMD_TEST
 
 void debug(const char *str, ...);
 struct context;

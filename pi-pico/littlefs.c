@@ -144,6 +144,6 @@ int cmd_sum(struct context *ctx)
 			checksum &= 0xffff;
 		}
 	}
-	HMI_cprintf(ctx,"%d %d\r\n",checksum,(total_size+1023)/1024);
+	HMI_cprintf(ctx,"%05d %5d\r\n",checksum,(total_size+1023)/1024);
 	return 3;	
 }
