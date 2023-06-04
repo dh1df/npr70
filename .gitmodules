@@ -8,4 +8,4 @@
 	url = https://github.com/dh1df/littlefs-lib
 [submodule "pi-pico/pico-enc28j60"]
 	path = pi-pico/pico-enc28j60
-	url = https://git.sr.ht/~krystianch/pico-enc28j60
+	url = https://github.com/dh1df/pico-enc28j60
