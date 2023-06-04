@@ -277,7 +277,7 @@ void HMI_line_parse (char* RX_text, int RX_text_count) {
 
 	loc_command_str = strtok (RX_text, " ");
 	loc_param1_str = strtok (NULL, " ");
-	loc_param2_str = strtok (NULL, " ");
+	loc_param2_str = strtok (NULL, "\r");
 	ctx.s1=loc_param1_str;
 	ctx.s2=loc_param2_str;
 
