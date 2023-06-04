@@ -410,10 +410,22 @@ void NFPR_config_read(AnalogIn* analog_pin) {
         }
 }
 
+static int
+cmd_xset_help(struct context *c)
+{
+	int i;
+	for (i = 0 ; i < xconfig_count ; i++) {
+		HMI_cprintf(c,"%s\r\n",config[i].name);
+	}
+	return 3;
+}
+
 int
 cmd_xset(struct context *c)
 {
 	int i;
+	if (!strcmp(c->s1,"help"))
+		return cmd_xset_help(c);
 	for (i = 0 ; i < xconfig_count ; i++) {
 		if (!strcmp(c->s1, config[i].name)) {
 			config_val_set(&config[i], c->s2);
