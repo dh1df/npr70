@@ -12,7 +12,7 @@
         {"rm",cmd_rm},\
         {"cat",cmd_cat},\
         {"cp",cmd_cp},\
-        {"sum",cmd_cp},
+        {"sum",cmd_sum},
 
 #define HAVE_CMD_FLASH\
         {"flash",cmd_flash},
