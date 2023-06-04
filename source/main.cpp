@@ -65,6 +65,11 @@ static int signaling_counter;
 static int telnet_counter;
 static int temperature_timer;
 static LAN_conf_T* LAN_conf_p;
+static W5500_chip W5500_1;
+static SI4463_Chip SI4463_1;
+#ifndef HAVE_INTEGRATED_SRAM
+static ext_SRAM_chip SPI_SRAM;
+#endif
 
 void loop(void)
 {
@@ -155,7 +160,6 @@ void init1(void)
 	LAN_conf_p = &LAN_conf_applied;
 
 #ifndef HAVE_NO_W5500	
-	static W5500_chip W5500_1;
 	W5500_p1 = &W5500_1;
 	W5500_1.spi_port = &spi_2;
     W5500_1.cs = &CS1;
@@ -164,14 +168,12 @@ void init1(void)
 	
 //#ifdef EXT_SRAM_USAGE
 #ifndef HAVE_INTEGRATED_SRAM
-	static ext_SRAM_chip SPI_SRAM;
 	SPI_SRAM_p = &SPI_SRAM;
 	SPI_SRAM.spi_port = &spi_2;
 	SPI_SRAM.cs = &CS3;
 #endif
 //#endif
 	
-	static SI4463_Chip SI4463_1;
 	SI4463_1.spi = &spi_1;//1
 	SI4463_1.cs = &CS2;//2
 	SI4463_1.interrupt = &Int_SI4463;
