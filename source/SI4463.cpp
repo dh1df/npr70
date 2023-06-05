@@ -68,12 +68,26 @@ static unsigned char TX_in_progress = 0;
 static unsigned char TX_test_inprogress = 0;
 //int TX_frame_pointer;
 
+void SI4463_cs_active(SI4463_Chip* SI4463)
+{
+	SI4463->cs->write(0);
+	wait_us(1); 
+}
+
+void SI4463_cs_inactive(SI4463_Chip* SI4463)
+{
+	wait_us(1); 
+	SI4463->cs->write(1);
+	wait_us(1); 
+}
+
+#define cs csx
 // Low level functions & drivers
 void SI4463_send_command(SI4463_Chip* SI4463, unsigned char* data, int size) {
 	unsigned char loc_RX[30];
-	SI4463->cs->write(0);
+	SI4463_cs_active(SI4463);
 	SI4463->spi->transfer_2(data, size, loc_RX, size);
-	SI4463->cs->write(1);
+	SI4463_cs_inactive(SI4463);
 	wait_us(1); 
 }
  
@@ -84,19 +98,19 @@ int SI4463_CTS_read_answer(SI4463_Chip* SI4463, unsigned char* data, int size, i
 	int loops = 0;
 	loc_TX[0] = 0x44;
 	loops = 0;
-	SI4463->cs->write(0);
+	SI4463_cs_active(SI4463);
 	SI4463->spi->transfer_2(loc_TX, 2, loc_RX, 2);
 	while ((loc_RX[1] != 0xFF) && (loops < timeout)) {
-		SI4463->cs->write(1);
+		SI4463_cs_inactive(SI4463);
 		wait_us(20);
-		SI4463->cs->write(0);
+		SI4463_cs_active(SI4463);
 		SI4463->spi->transfer_2(loc_TX, 2, loc_RX, 2);
 		loops++;
 	}
 	if (size > 0) {
 		SI4463->spi->transfer_2(loc_TX, size, data, size);
 	}
-	SI4463->cs->write(1);
+	SI4463_cs_inactive(SI4463);
 	wait_us(1);
 	if (loops >= timeout) {
 		answer = 0; 
@@ -438,10 +452,10 @@ void SI4463_FIFO_write(SI4463_Chip* SI4463, unsigned char* data, int size) {
 	static unsigned char trash [200];
 	unsigned char command[6];
 	command[0] = 0x66;
-	SI4463->cs->write(0);
+	SI4463_cs_active(SI4463);
 	SI4463->spi->transfer_2 (command, 1, trash, 1);
 	SI4463->spi->transfer_2 (data, size, trash, size);
-	SI4463->cs->write(1);
+	SI4463_cs_inactive(SI4463);
 	wait_us(1);
 }
 
@@ -449,10 +463,10 @@ void SI4463_FIFO_read (SI4463_Chip* SI4463, unsigned char* data, int size) {
 	unsigned char trash [200]; //static
 	unsigned char command[6];
 	command[0] = 0x77;
-	SI4463->cs->write(0);
+	SI4463_cs_active(SI4463);
 	SI4463->spi->transfer_2 (command, 1, trash, 1);
 	SI4463->spi->transfer_2 (trash, size, data, size);
-	SI4463->cs->write(1);
+	SI4463_cs_inactive(SI4463);
 	wait_us(1);
 }
 //fin a supprimer
@@ -486,9 +500,9 @@ void SI4463_read_FRR(SI4463_Chip* SI4463, unsigned char* data) {
 	unsigned char loc_answer[8];
 	int i;
 	command[0] = 0x50;
-	SI4463->cs->write(0);
+	SI4463_cs_active(SI4463);
 	SI4463->spi->transfer_2(command, 5, loc_answer, 5);
-	SI4463->cs->write(1);
+	SI4463_cs_inactive(SI4463);
 	wait_us(1);
 	for (i=0; i<4; i++) {
 		data[i] = loc_answer[i+1];
@@ -641,12 +655,12 @@ void SI4463_FIFO_RX_transfer(unsigned int size) {
 
 void SI4463_FIFO_TX_transfer(unsigned int size) {
 	unsigned char command[5];
-	G_SI4463->cs->write(0);
+	SI4463_cs_active(G_SI4463);
 	command[0] = 0x66;
 	G_SI4463->spi->transfer_2 (command, 1, SI_trash, 1);
 	G_SI4463->spi->transfer_2 (TX_frame_to_send, size, SI_trash, size);
 	TX_frame_to_send = TX_frame_to_send + size;
-	G_SI4463->cs->write(1);
+	SI4463_cs_inactive(G_SI4463);
 }
 
 void SI4463_RX_HOP(void) {
@@ -702,7 +716,7 @@ void SI4463_RX_IT() {
 	Treated_SYNC_detected = 0;
 	Treated_FIFO_almost_full = 0;
 	Treated_pckt_RX = 0;
-	
+
 	timer_snapshot = GLOBAL_timer.read_us();
 	wait_us(10);//for RSSI propagation (measure at sync detect)
 	do {
@@ -732,7 +746,7 @@ void SI4463_RX_IT() {
 				// read first byte of packet : size
 				TX_small[0] = 0x77;
 				TX_small[1] = toto;
-				G_SI4463->cs->write(0);
+				SI4463_cs_active(G_SI4463);
 				G_SI4463->spi->transfer_2 (TX_small, 2, RX_small, 2);
 				RX_size_remaining = RX_small[1] + SI4463_offset_size;
 				if (RX_size_remaining > SI4463_CONF_max_field2_size ) {
@@ -760,7 +774,7 @@ void SI4463_RX_IT() {
 				RX_FIFO_WR_point++;
 				//read remaining
 				SI4463_FIFO_RX_transfer(size_to_read);
-				G_SI4463->cs->write(1);
+				SI4463_cs_inactive(G_SI4463);
 				wait_us(1);
 				RX_size_remaining = RX_size_remaining - size_to_read; 
 			} 
@@ -776,10 +790,10 @@ void SI4463_RX_IT() {
 				}
 				if (RX_size_remaining > 0) { //avoid useless FIFO reading
 					TX_small[0] = 0x77;
-					G_SI4463->cs->write(0);
+					SI4463_cs_active(G_SI4463);
 					G_SI4463->spi->transfer_2 (TX_small, 1, RX_small, 1);
 					SI4463_FIFO_RX_transfer(size_to_read);
-					G_SI4463->cs->write(1);
+					SI4463_cs_inactive(G_SI4463);
 					wait_us(1);
 					RX_size_remaining = RX_size_remaining - size_to_read; 
 				}
