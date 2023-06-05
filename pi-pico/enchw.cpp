@@ -61,8 +61,11 @@ void enchw_init(void)
 	int i;
 	for (i = 0 ; i < 6 ; i++)
 		enc28j60.mac_address[i]=CONF_modem_MAC[i];
+#if 0
 	netif_add(netif, &ipaddr, &netmask, &gateway, &enc28j60, ethernetif_init, netif_input);
         netif_set_up(netif);
+#endif
+	netif = netif_add_noaddr(netif, &enc28j60, ethernetif_init, netif_input);
         netif_set_link_up(netif);
 	enc28j60_interrupts(&enc28j60, ENC28J60_PKTIE | ENC28J60_TXERIE | ENC28J60_RXERIE);
 }

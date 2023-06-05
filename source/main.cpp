@@ -82,9 +82,7 @@ void loop(void)
 		} else {
 			radio_RX_FIFO_dequeue(W5500_p1);
 		}
-#ifndef HAVE_NO_W5500
 		Eth_RX_dequeue(W5500_p1); 
-#endif
 		TDMA_slave_timeout();
 #ifdef EXT_SRAM_USAGE
 		ext_SRAM_periodic_call();
@@ -161,12 +159,10 @@ void init1(void)
 	
 	LAN_conf_p = &LAN_conf_applied;
 
-#ifndef HAVE_NO_W5500	
 	W5500_p1 = &W5500_1;
 	W5500_1.spi_port = &spi_2;
     W5500_1.cs = &CS1;
     W5500_1.interrupt = &Int_W5500; 
-#endif
 	
 //#ifdef EXT_SRAM_USAGE
 #ifndef HAVE_INTEGRATED_SRAM
@@ -209,9 +205,7 @@ void init1(void)
 	G_PTT_PA_pin->write(0);
 	LED_RX_loc = 0;
 	LED_connected = 0;
-#ifndef HAVE_NO_W5500	
     CS1=1;
-#endif
 	CS2=1;
 #ifndef HAVE_INTEGRATED_SRAM
 	CS3=1;

@@ -72,14 +72,16 @@ public:
 class Gpio {
 public:
   int pin;
+  int state;
   Gpio(int pin);
   int read(void);
+  void setstate(int state);
   operator int();
 };
 
 class DigitalIn : public Gpio {
 public:
-  DigitalIn(int pin);
+  DigitalIn(int pin) : Gpio(pin) {};
 };
 
 class DigitalOut : public Gpio {

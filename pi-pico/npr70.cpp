@@ -27,8 +27,11 @@ err_t error;
 
 SPI spi_0(spi0, SPI0_PIN_MISO, SPI0_PIN_SCK, SPI0_PIN_MOSI);
 SPI spi_1(spi1, SPI1_PIN_MISO, SPI1_PIN_SCK, SPI1_PIN_MOSI);
+SPI spi_2(NULL);
+DigitalOut CS1(-1);
 DigitalOut CS2(SI4463_PIN_CS);
 InterruptIn Int_SI4463(SI4463_PIN_INT);
+DigitalIn Int_W5500(-1);
 
 AnalogIn Random_pin(RANDOM_PIN);
 DigitalOut LED_RX_loc(LED_RX_PIN);
@@ -121,26 +124,7 @@ extern "C" void test(void);
 int
 cmd_test(struct context *ctx)
 {
-#if 0
-	if (s1) {
-		if (!strcmp(s1,"1")) {
-			debug("enchw_init()\r\n");
-			enchw_init();
-		}
-		if (!strcmp(s1,"2")) {
-			debug("init_wifi()\r\n");
-			init_wifi();
-		}
-		if (!strcmp(s1,"3")) {
-			debug("bridge_setup()\r\n");
-			bridge_setup();
-		}
-	}
-#endif
-#if 0
-	config_test();
-	config_read((char *)int_sram, INT_SRAM_SIZE);
-#endif
+	bridge_setup();
 	return 3;
 }
 

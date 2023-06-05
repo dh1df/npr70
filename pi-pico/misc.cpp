@@ -127,8 +127,10 @@ DigitalInOut::DigitalInOut(int pin) : DigitalOut(pin)
 
 DigitalOut::DigitalOut(int pin) : Gpio(pin)
 {
-	gpio_set_function(pin, GPIO_FUNC_SIO);
-	gpio_set_dir(pin, GPIO_OUT);
+	if (pin != -1) {
+		gpio_set_function(pin, GPIO_FUNC_SIO);
+		gpio_set_dir(pin, GPIO_OUT);
+	}
 }
 
 Gpio::Gpio(int pin)
@@ -138,7 +140,14 @@ Gpio::Gpio(int pin)
 
 int Gpio::read()
 {
+	if (this->pin == -1)
+		return this->state;
 	return gpio_get(this->pin);
+}
+
+void Gpio::setstate(int state)
+{
+	this->state=state;
 }
 
 Gpio::operator int()
@@ -160,7 +169,8 @@ void DigitalInOut::input(void)
 void DigitalOut::write(int value)
 {
 	// debug("DigitalOut::write %d=%d\r\n",this->pin,value);
-	gpio_put(this->pin, value);
+	if (this->pin != -1)
+		gpio_put(this->pin, value);
 }
 
 extern InterruptIn Int_SI4463;

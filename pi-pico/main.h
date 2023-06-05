@@ -1,5 +1,7 @@
 extern SPI spi_0;
 extern SPI spi_1;
+extern SPI spi_2;
+extern DigitalOut CS1;
 extern DigitalOut CS2;
 extern InterruptIn Int_SI4463;
 
@@ -10,6 +12,7 @@ extern DigitalOut SI4463_SDN;
 extern DigitalInOut FDD_trig_pin;
 extern InterruptIn FDD_trig_IRQ;
 extern DigitalOut PTT_PA_pin;
+extern DigitalIn Int_W5500;
 
 extern uint8_t CONF_try_restart;
 
