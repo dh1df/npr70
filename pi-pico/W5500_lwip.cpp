@@ -12,6 +12,7 @@
 struct W5500_channel W5500_channelx[NR_SOCKETS];
 static struct netif radio;
 static struct netif *radiobr[4];
+static err_t radio_output_br_fn(struct pbuf *p);
 
 struct W5500_channel *
 W5500_chan(int idx)
@@ -232,7 +233,10 @@ W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* dat
 #endif
 #else
 	if (sock_nb == 1) {
+		struct pbuf *p = pbuf_alloc(PBUF_RAW, size, PBUF_POOL);
 		debug("raw send %d %d\r\n",size,send_mac);
+		memcpy(p->payload, data, size);
+		radio_output_br_fn(p);
 	}
 	else
 		W5500_transmit(c, data, size);
@@ -449,6 +453,11 @@ static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 	W5500_enqueue_pbuf(c, p);
 	Int_W5500.setstate(0);
 	return ERR_OK;
+}
+
+static err_t radio_output_br_fn(struct pbuf *p)
+{
+	return radiobr[0]->linkoutput(radiobr[0], p);
 }
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
