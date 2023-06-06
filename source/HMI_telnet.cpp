@@ -396,11 +396,11 @@ int HMI_exec(struct context *c)
 	char *loc_param1_str = c->s1;
 	char *loc_param2_str = c->s2;
 	int command_understood=HMI_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]), 1);
-	printf("\r\ncommand_understood %d\r\n");
 	c->ret = command_understood;
-	if (command_understood == 4 || command_understood == 5) /* 4=Call again slow, 5=Call again fast */
+	if (command_understood == 4 || command_understood == 5) { /* 4=Call again slow, 5=Call again fast */
 		echo_ON = 0;
 		return command_understood;
+	}
 	if (command_understood == 3) { /* 3=Understood with OK and prompt */
 		HMI_cprintf(c, "OK\r\n");
 	}
