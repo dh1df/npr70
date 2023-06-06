@@ -49,11 +49,26 @@ static int HMI_cmd_tx_test(struct context *c);
 static int HMI_cmd_version(struct context *c);
 static int HMI_cmd_who(struct context *c);
 
-
 static int HMI_cmd_set_callsign(struct context *c);
-static int HMI_cmd_set_dns_active(struct context *c);
+static int HMI_cmd_set_client_req_size(struct context *c);
 static int HMI_cmd_set_def_route_active(struct context *c);
+static int HMI_cmd_set_def_route_val(struct context *c);
+static int HMI_cmd_set_dhcp_active(struct context *c);
+static int HMI_cmd_set_dns_active(struct context *c);
+static int HMI_cmd_set_dns_value(struct context *c);
+static int HMI_cmd_set_freq_shift(struct context *c);
+static int HMI_cmd_set_frequency(struct context *c);
+static int HMI_cmd_set_ip_beginn(struct context *c);
 static int HMI_cmd_set_is_master(struct context *c);
+static int HMI_cmd_set_master_down_ip(struct context *c);
+static int HMI_cmd_set_master_fdd(struct context *c);
+static int HMI_cmd_set_master_ip_size(struct context *c);
+static int HMI_cmd_set_modem_ip(struct context *c);
+static int HMI_cmd_set_modulation(struct context *c);
+static int HMI_cmd_set_netmask(struct context *c);
+static int HMI_cmd_set_radio_netw_id(struct context *c);
+static int HMI_cmd_set_radio_on_at_startup(struct context *c);
+static int HMI_cmd_set_rf_power(struct context *c);
 static int HMI_cmd_set_telnet_active(struct context *c);
 static int HMI_cmd_set_telnet_routed(struct context *c);
 
@@ -63,6 +78,9 @@ static int HMI_cmd_display_net(struct context *c);
 static int HMI_cmd_display_static(struct context *c);
 
 static struct command commands[]={
+#ifdef CUSTOM_COMMANDS
+	CUSTOM_COMMANDS
+#endif
 #ifdef HAVE_CALL_BOOTLOADER
 	{"bootloader", HMI_cmd_bootloader},
 #endif
@@ -78,9 +96,6 @@ static struct command commands[]={
 	{"TX_test", HMI_cmd_tx_test},
 	{"version", HMI_cmd_version},
 	{"who", HMI_cmd_who},
-#ifdef CUSTOM_COMMANDS
-	CUSTOM_COMMANDS
-#endif
 };
 
 static struct command display_commands[]={
@@ -94,28 +109,47 @@ static struct command display_commands[]={
 
 static struct command set_commands[]={
 	{"callsign", HMI_cmd_set_callsign},
-	{"dns_active", HMI_cmd_set_dns_active},
+	{"client_req_size", HMI_cmd_set_client_req_size},
 	{"def_route_active", HMI_cmd_set_def_route_active},
+	{"def_route_val", HMI_cmd_set_def_route_val},
+	{"DHCP_active", HMI_cmd_set_dhcp_active},
+	{"dns_active", HMI_cmd_set_dns_active},
+	{"DNS_value", HMI_cmd_set_dns_value},
+	{"freq_shift", HMI_cmd_set_freq_shift},
+	{"frequency", HMI_cmd_set_frequency},
+	{"IP_begin", HMI_cmd_set_ip_beginn},
 	{"is_master", HMI_cmd_set_is_master},
+	{"master_down_IP", HMI_cmd_set_master_down_ip},
+	{"master_FDD", HMI_cmd_set_master_fdd},
+	{"master_IP_size", HMI_cmd_set_master_ip_size},
+	{"modem_IP", HMI_cmd_set_modem_ip},
+	{"modulation", HMI_cmd_set_modulation},
+	{"netmask", HMI_cmd_set_netmask},
+	{"radio_netw_ID", HMI_cmd_set_radio_netw_id},
+	{"radio_on_at_start", HMI_cmd_set_radio_on_at_startup},
+	{"RF_power", HMI_cmd_set_rf_power},
 	{"telnet_active", HMI_cmd_set_telnet_active},
 	{"telnet_routed", HMI_cmd_set_telnet_routed},
-
 };
 
 static int HMI_command_help(struct context *ctx, struct command *cmd, int len, int hor)
 {
-	int i,sum;
+	int i,col;
 	for (i = 0 ; i < len ; i++) {
 		if (hor) {
 			HMI_cprintf(ctx, " %s",cmd->cmd);
-			sum+=strlen(cmd->cmd)+1;
-			if (sum > 60)
-				HMI_cprintf(ctx, "\r\n");	
+			col+=strlen(cmd->cmd)+1;
+			if (col > 60) {
+				HMI_cprintf(ctx, "\r\n");
+				col=0;
+			}
 		} else
 			HMI_cprintf(ctx,"%s\r\n",cmd->cmd);
 		cmd++;
 	}
-	return 0;
+	if (hor && col)
+		HMI_cprintf(ctx, "\r\n");
+	return 2;
 }
 
 int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help)
@@ -349,7 +383,7 @@ static int HMI_cmd_radio(struct context *c)
 		RADIO_off(1);
 	}
 	else {
-		HMI_printf("unknown radio command\r\n");
+		HMI_printf("unknown radio command, use on or off\r\n");
 		return 2;
 	}
 	return 3;
@@ -589,7 +623,7 @@ int HMI_cmd_display_static(struct context *c) {
 	return 2;
 }
 
-int HMI_cmd_set_callsign(struct context *c)
+static int HMI_cmd_set_callsign(struct context *c)
 {
 	RADIO_off_if_necessary(1);
 	strcpy (CONF_radio_my_callsign+2, c->s2);
@@ -598,10 +632,10 @@ int HMI_cmd_set_callsign(struct context *c)
 	CONF_radio_my_callsign[15] = 0;
 	RADIO_restart_if_necessary(1, 0, 1);
 	HMI_cprintf(c, "new callsign '%s'\r\n", CONF_radio_my_callsign+2);
-	return 2;
+	return 3;
 }
 
-int HMI_cmd_set_is_master(struct context *c)
+static int HMI_cmd_set_is_master(struct context *c)
 {
 	char DHCP_warning[50];
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
@@ -616,7 +650,7 @@ int HMI_cmd_set_is_master(struct context *c)
 		}
 		HMI_cprintf(c, "Master '%s'%s\r\n", c->s2, DHCP_warning);
 	}
-	return 2;
+	return 3;
 }
 
 static int HMI_cmd_set_telnet_active(struct context *c)
@@ -627,7 +661,7 @@ static int HMI_cmd_set_telnet_active(struct context *c)
 		is_telnet_active = temp_uchar;
 		HMI_printf("telnet active '%s'\r\n", c->s2);
 	}
-	return 2;
+	return 3;
 }
 
 static int HMI_cmd_set_telnet_routed(struct context *c)
@@ -638,7 +672,7 @@ static int HMI_cmd_set_telnet_routed(struct context *c)
 		//W5500_re_configure_gateway(W5500_p1);
 		HMI_printf("telnet routed '%s'\r\n", c->s2);
 	}
-	return 2;
+	return 3;
 }
 
 static int HMI_cmd_set_dns_active(struct context *c)
@@ -650,7 +684,7 @@ static int HMI_cmd_set_dns_active(struct context *c)
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("DNS active '%s'", c->s2);
 	}
-	return 2;
+	return 3;
 }
 
 static int HMI_cmd_set_def_route_active(struct context *c)
@@ -663,207 +697,261 @@ static int HMI_cmd_set_def_route_active(struct context *c)
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("default route active '%s'\r\n", c->s2);
 	}
+	return 3;
+}
+
+static int HMI_cmd_set_master_fdd(struct context *c)
+{
+	if(strcmp(c->s2,"no") == 0) {
+		CONF_master_FDD = 0;
+		RADIO_off_if_necessary(1);
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	else if(strcmp(c->s2,"down") == 0) {
+		CONF_master_FDD = 1;
+		RADIO_off_if_necessary(1);
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	else if(strcmp(c->s2,"up") == 0) {
+		CONF_master_FDD = 2;
+		RADIO_off_if_necessary(1);
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	else {
+		HMI_printf("  wrong value. Use no,down or up\r\n");
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_radio_on_at_startup(struct context *c)
+{
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		CONF_radio_default_state_ON_OFF = temp_uchar;
+		HMI_printf("radio_on_at_start '%s'\r\nready> ", c->s2);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_dhcp_active(struct context *c)
+{
+	char DHCP_warning[50];
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		LAN_conf_saved.DHCP_server_active = temp_uchar;
+		if ( (is_TDMA_master) && (LAN_conf_saved.DHCP_server_active == 1) ) {
+			strcpy (DHCP_warning, " (warning, DHCP inhibited in master mode)"); 
+		} else {
+			strcpy (DHCP_warning, ""); 
+		}
+		HMI_printf("DHCP_active: '%s'%s\r\nready> ", c->s2, DHCP_warning);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_modem_ip(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		LAN_conf_saved.LAN_modem_IP = temp_uint;
+		//HMI_force_exit();
+		//W5500_re_configure();
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_netmask(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		return 3;
+		LAN_conf_saved.LAN_subnet_mask = temp_uint;
+		//HMI_force_exit();
+		//W5500_re_configure();
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_def_route_val(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		LAN_conf_saved.LAN_def_route = temp_uint;
+		//W5500_re_configure_gateway(W5500_p1);
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_dns_value(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		LAN_conf_saved.LAN_DNS_value = temp_uint;
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+
+static int HMI_cmd_set_ip_beginn(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		CONF_radio_IP_start = temp_uint;
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_master_down_ip(struct context *c)
+{
+	unsigned long int temp_uint = HMI_str2IP(c->s2);
+	if (temp_uint !=0) {
+		RADIO_off_if_necessary(1);
+		CONF_master_down_IP = temp_uint;
+		RADIO_restart_if_necessary(1, 0, 1);
+	}
+	return 3;
+}
+
+static int HMI_cmd_set_master_ip_size(struct context *c)
+{
+	unsigned long int temp_uint;
+	int temp = sscanf (c->s2, "%ld", &temp_uint);
+	if ( (temp==1) && (temp_uint!=0) ) {
+		RADIO_off_if_necessary(1);
+		CONF_radio_IP_size = temp_uint;
+		RADIO_restart_if_necessary(1, 0, 1);
+		return 3;
+	}
+	else {
+		HMI_printf("wrong value\r\n");
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_client_req_size(struct context *c)
+{
+	unsigned long int temp_uint;
+	int temp = sscanf (c->s2, "%ld", &temp_uint);
+	if ( (temp==1) && (temp_uint!=0) ) {
+		RADIO_off_if_necessary(1);
+		CONF_radio_IP_size_requested = temp_uint;
+		RADIO_restart_if_necessary(1, 0, 1);
+		return 3;
+	}
+	else {
+		HMI_printf("wrong value\r\n");
+	}
+	return 2;
+}
+
+
+static int HMI_cmd_set_frequency(struct context *c)
+{
+	float frequency;
+	int temp = sscanf (c->s2, "%f", &frequency);
+	if ( (temp == 1) && (frequency<=FREQ_RANGE_MAX) && (frequency>FREQ_RANGE_MIN) ) {
+		RADIO_off_if_necessary(0);
+		frequency = (frequency - FREQ_RANGE_MIN)*1000 + 0.3; 
+		CONF_frequency_HD = (short int)frequency;
+		//RADIO_compute_freq_params();//REMOVE TEST
+		RADIO_restart_if_necessary(0, 1, 1);
+		return 3;
+	} else {
+		HMI_printf("wrong freq value\r\n");
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_freq_shift(struct context *c)
+{
+	float frequency;
+	int temp = sscanf (c->s2, "%f", &frequency);
+	if ( (temp == 1) && (frequency<=10) && (frequency>=-10) ) {
+		RADIO_off_if_necessary(0);
+		frequency = (frequency*1000);
+		CONF_freq_shift = (short int)frequency;
+		//RADIO_compute_freq_params();//REMOVE TEST
+		//if (CONF_frequency_band == previous_freq_band) {
+		//	RADIO_restart_if_necessary(0, 0, 1);
+		//}else {
+		RADIO_restart_if_necessary(0, 1, 1);
+		//}
+		return 3;
+	} else {
+		HMI_printf("wrong freq value\r\n");
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_rf_power(struct context *c)
+{
+	int temp;
+	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp); 
+	if ( (temp_uint == 1) && (temp<128) ) {
+		RADIO_off_if_necessary(0);
+		CONF_radio_PA_PWR = temp;
+		SI4463_set_power(G_SI4463);
+		RADIO_restart_if_necessary(0, 0, 1);
+		return 3;
+	} else {
+		HMI_printf("error : max RF_power value 127");
+	}
+	return 2;
+}
+
+
+static int HMI_cmd_set_modulation(struct context *c)
+{
+	int temp;
+	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp);
+	unsigned char temp_uchar = temp;
+	//if ( (temp_uint == 1) && ((temp_uchar==13)||(temp_uchar==14)||(temp_uchar==22)||(temp_uchar==23)||(temp_uchar==24)) ) {
+	if ( (temp_uint == 1) && ( ((temp_uchar>=11)&&(temp_uchar<=14)) || ((temp_uchar>=20)&&(temp_uchar<=24)) ) ) {
+		RADIO_off_if_necessary(1);
+		CONF_radio_modulation = temp_uchar;
+		RADIO_restart_if_necessary(1, 1, 1);
+		return 3;
+	} else {
+		HMI_printf("wrong modulation value");
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_radio_netw_id(struct context *c)
+{
+	int temp;
+	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp);
+	unsigned char temp_uchar = temp;
+	if ( (temp_uint == 1) && (temp_uchar <= 15) ) {
+		RADIO_off_if_necessary(1);
+		CONF_radio_network_ID = temp_uchar;
+		RADIO_restart_if_necessary(1, 1, 1);
+		return 3;
+	} else {
+		HMI_printf("wrong value, 15 max");
+	}
 	return 2;
 }
 
 static int HMI_cmd_set(struct context *c) {
-	char DHCP_warning[50];
 	char* loc_param1=c->s1;
 	char* loc_param2=c->s2;
 	int temp;
-	unsigned char temp_uchar;
-	unsigned long int temp_uint;
-	float frequency;
 	// unsigned char previous_freq_band;
 	if ((loc_param1) && (loc_param2)) {
 		int command_understood = HMI_command_parse(c, c->s1, set_commands, sizeof(set_commands)/sizeof(set_commands[0]), 0);
 		if (command_understood)
 			return command_understood;
-		if (strcmp(loc_param1, "master_FDD") == 0) {
-			if(strcmp(loc_param2,"no") == 0) {
-				CONF_master_FDD = 0;
-				RADIO_off_if_necessary(1);
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-			else if(strcmp(loc_param2,"down") == 0) {
-				CONF_master_FDD = 1;
-				RADIO_off_if_necessary(1);
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-			else if(strcmp(loc_param2,"up") == 0) {
-				CONF_master_FDD = 2;
-				RADIO_off_if_necessary(1);
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-			else {
-				HMI_printf("  wrong value\r\n");
-			}
-			HMI_printf("ready> ");
-		}
-		else if (strcmp(loc_param1, "radio_on_at_start") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				CONF_radio_default_state_ON_OFF = temp_uchar;
-				HMI_printf("radio_on_at_start '%s'\r\nready> ", loc_param2);
-			}
-		}
-		else if (strcmp(loc_param1, "DHCP_active") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				LAN_conf_saved.DHCP_server_active = temp_uchar;
-				if ( (is_TDMA_master) && (LAN_conf_saved.DHCP_server_active == 1) ) {
-					strcpy (DHCP_warning, " (warning, DHCP inhibited in master mode)"); 
-				} else {
-					strcpy (DHCP_warning, ""); 
-				}
-				HMI_printf("DHCP_active: '%s'%s\r\nready> ", loc_param2, DHCP_warning);
-			}
-		}
-		else if (strcmp(loc_param1, "modem_IP") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_modem_IP = temp_uint;
-				//HMI_force_exit();
-				//W5500_re_configure();
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "netmask") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_subnet_mask = temp_uint;
-				//HMI_force_exit();
-				//W5500_re_configure();
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "def_route_val") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_def_route = temp_uint;
-				//W5500_re_configure_gateway(W5500_p1);
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "DNS_value") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_DNS_value = temp_uint;
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "IP_begin") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				CONF_radio_IP_start = temp_uint;
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "master_down_IP") == 0) {
-			temp_uint = HMI_str2IP(loc_param2);
-			if (temp_uint !=0) {
-				RADIO_off_if_necessary(1);
-				CONF_master_down_IP = temp_uint;
-				RADIO_restart_if_necessary(1, 0, 1);
-			}
-		}
-		else if (strcmp(loc_param1, "master_IP_size") == 0) {
-			temp = sscanf (loc_param2, "%ld", &temp_uint);
-			if ( (temp==1) && (temp_uint!=0) ) {
-				RADIO_off_if_necessary(1);
-				CONF_radio_IP_size = temp_uint;
-				RADIO_restart_if_necessary(1, 0, 1);
-				HMI_printf("OK\r\nready> ");
-			}
-			else {
-				HMI_printf("wrong value\r\nready> ");
-			}
-		}
-		else if (strcmp(loc_param1, "client_req_size") == 0) {
-			temp = sscanf (loc_param2, "%ld", &temp_uint);
-			if ( (temp==1) && (temp_uint!=0) ) {
-				RADIO_off_if_necessary(1);
-				CONF_radio_IP_size_requested = temp_uint;
-				RADIO_restart_if_necessary(1, 0, 1);
-				HMI_printf("OK\r\nready> ");
-			}
-			else {
-				HMI_printf("wrong value\r\nready> ");
-			}
-		}
-
-		else if (strcmp(loc_param1, "frequency") == 0) {
-			temp = sscanf (loc_param2, "%f", &frequency);
-			if ( (temp == 1) && (frequency<=FREQ_RANGE_MAX) && (frequency>FREQ_RANGE_MIN) ) {
-				RADIO_off_if_necessary(0);
-				frequency = (frequency - FREQ_RANGE_MIN)*1000 + 0.3; 
-				CONF_frequency_HD = (short int)frequency;
-				//RADIO_compute_freq_params();//REMOVE TEST
-				RADIO_restart_if_necessary(0, 1, 1);
-				HMI_printf("OK\r\nready> ");
-			} else {
-				HMI_printf("wrong freq value\r\nready> ");
-			}
-		}
-		else if (strcmp(loc_param1, "freq_shift") == 0) {
-			temp = sscanf (loc_param2, "%f", &frequency);
-			if ( (temp == 1) && (frequency<=10) && (frequency>=-10) ) {
-				RADIO_off_if_necessary(0);
-				frequency = (frequency*1000);
-				CONF_freq_shift = (short int)frequency;
-				//RADIO_compute_freq_params();//REMOVE TEST
-				//if (CONF_frequency_band == previous_freq_band) {
-				//	RADIO_restart_if_necessary(0, 0, 1);
-				//}else {
-				RADIO_restart_if_necessary(0, 1, 1);
-				//}
-				HMI_printf("OK\r\nready> ");
-			} else {
-				HMI_printf("wrong freq value\r\nready> ");
-			}
-		}
-		else if (strcmp(loc_param1, "RF_power") == 0) {
-			temp_uint = sscanf (loc_param2, "%i", &temp); 
-			if ( (temp_uint == 1) && (temp<128) ) {
-				RADIO_off_if_necessary(0);
-				CONF_radio_PA_PWR = temp;
-				SI4463_set_power(G_SI4463);
-				RADIO_restart_if_necessary(0, 0, 1);
-				HMI_printf("OK\r\nready> ");
-			} else {
-				HMI_printf("error : max RF_power value 127\r\nready> ");
-			}
-		}
-		else if (strcmp(loc_param1, "modulation") == 0) {
-			temp_uint = sscanf (loc_param2, "%i", &temp);
-			temp_uchar = temp;
-			//if ( (temp_uint == 1) && ((temp_uchar==13)||(temp_uchar==14)||(temp_uchar==22)||(temp_uchar==23)||(temp_uchar==24)) ) {
-			if ( (temp_uint == 1) && ( ((temp_uchar>=11)&&(temp_uchar<=14)) || ((temp_uchar>=20)&&(temp_uchar<=24)) ) ) {
-				RADIO_off_if_necessary(1);
-				CONF_radio_modulation = temp_uchar;
-				RADIO_restart_if_necessary(1, 1, 1);
-				HMI_printf("OK\r\nready> ");
-			} else {
-				HMI_printf("wrong modulation value\r\nready> ");
-			}
-		}
-		else if (strcmp(loc_param1, "radio_netw_ID") == 0) {
-			temp_uint = sscanf (loc_param2, "%i", &temp);
-			temp_uchar = temp;
-			if ( (temp_uint == 1) && (temp_uchar <= 15) ) {
-				RADIO_off_if_necessary(1);
-				CONF_radio_network_ID = temp_uchar;
-				RADIO_restart_if_necessary(1, 1, 1);
-				HMI_printf("OK\r\nready> ");
-			} else {
-				HMI_printf("wrong value, 15 max\r\nready> ");
-			}
-		}
 		else {
 			HMI_printf("unknown config param\r\nready> ");
 		}
