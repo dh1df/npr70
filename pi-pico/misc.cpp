@@ -194,7 +194,7 @@ void InterruptIn::rise(void (*func)(void))
 
 void InterruptIn::fall(void (*func)(void))
 {
-	debug("InterruptIn::fall %d\r\n",this->read());
+	// debug("InterruptIn::fall %d\r\n",this->read());
 #if 0
 	this->event=GPIO_IRQ_LEVEL_LOW;
 #else
