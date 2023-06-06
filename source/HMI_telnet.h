@@ -29,8 +29,13 @@ extern char HMI_out_str[120];
 #endif
 
 struct context {
+  char *cmd;
   char *s1;
   char *s2;
+  int poll;
+  int interrupt;
+  int slow_counter;
+  int ret;
 };
 
 struct command {
@@ -44,12 +49,13 @@ struct command {
 #define HMI_cprintf(ctx, param, ...) do {snprintf (HMI_out_str, sizeof(HMI_out_str), param, ##__VA_ARGS__);\
 	HMI_cwrite(ctx, HMI_out_str, strlen(HMI_out_str));} while(0)
 
+void HMI_prompt(struct context *c);
 
 int serial_term_loop (void);
 
-void HMI_line_parse (char* RX_text, int RX_text_count);
+void HMI_line_parse (struct context *c, char* RX_text, int RX_text_count);
 
-void HMI_cancel_current(void);
+void HMI_cancel_current(struct context *c);
 
 int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help);
 
@@ -76,8 +82,6 @@ void HMI_set_command(char* loc_param1, char* loc_param2);
 unsigned long int HMI_str2IP(char* raw_string);
 
 unsigned char HMI_yes_no_2int(char* raw_string);
-
-void HMI_print_who(void);
 
 void HMI_periodic_call(void);
 
