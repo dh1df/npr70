@@ -87,7 +87,21 @@ void tcp_setup(void)
 		tcp_arg(c->tcp, c);
 		tcp_accept(c->tcp, W5500_accept);
 	}
+
 	debug("telnet %d\r\n",err);
+	c=W5500_chan(DHCP_SOCKET);
+	err=c?ERR_OK:ERR_ARG;
+	if (err == ERR_OK) {
+		c->udp=udp_new();
+		if (!c->udp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK)
+		err = udp_bind(c->udp, IP_ANY_TYPE, 67);
+	if (err == ERR_OK) {
+		udp_recv(c->udp, W5500_udp_recv, c);
+	}
+	
 }
 
 void
@@ -124,7 +138,6 @@ extern "C" void test(void);
 int
 cmd_test(struct context *ctx)
 {
-	bridge_setup();
 	return 3;
 }
 
@@ -147,8 +160,6 @@ int main()
 	init1();
 	init2();
 
-#if 1
-	// Initialize tinyusb, lwip, dhcpd and httpd
 	if (cyw43_arch_init()) {
 		wifi=0;
 		printf("failed to initialise\n");
@@ -159,16 +170,11 @@ int main()
 		if (err)
 			wifi=0;
 	}
-#else
-	lwip_init();
-#endif
-	tud_setup();
-	enchw_init();
 	if (wifi) 
 		init_wifi();
-#if 0
+	tud_setup();
+	enchw_init();
 	bridge_setup();
-#endif
 
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);

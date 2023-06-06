@@ -63,6 +63,7 @@ W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 	if (c->udp) {
 		struct pbuf *pbuf=pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
 		memcpy(pbuf->payload, buffer, len);
+		printf("udp_sendto_if\r\n");
 		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &radio);
 		pbuf_free(pbuf);
 	} else {
@@ -159,9 +160,11 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 void W5500_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
 	struct W5500_channel *c=(struct W5500_channel *)arg;
+	debug("W5500_udp_recv\r\n");
 	if (c && p->len && p->payload) {
 		W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	}
+	pbuf_free(p);
 }
 
 uint8_t
@@ -449,9 +452,12 @@ debug_pbuf(const char *id, struct pbuf *p)
 static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 {
 	struct W5500_channel *c=W5500_chan(1);
-	debug("radio_input_fn\r\n");
+	// debug("radio_input_fn\r\n");
+	radio.input(p, &radio);
+#if 0
 	W5500_enqueue_pbuf(c, p);
 	Int_W5500.setstate(0);
+#endif
 	return ERR_OK;
 }
 
@@ -462,19 +468,13 @@ static err_t radio_output_br_fn(struct pbuf *p)
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
-#if 0
-#if 0
-	debug_pbuf("radio_out",p);
-#else
-	debug("radio_out\r\n");
-#endif
-#endif
-	return ERR_OK;
+	// ebug("radio_linkoutput_fn\r\n");
+	return radiobr[0]->linkoutput(radiobr[0], p);
 }
 
 static err_t radio_output_fn(struct netif *netif, struct pbuf *p, const ip_addr_t *addr)
 {
-	debug("radio_output_fn\r\n");
+	// debug("radio_output_fn\r\n");
 	return etharp_output(netif, p, addr);
 }
 
@@ -506,20 +506,16 @@ static void radio_add_br(struct netif *portif)
 	netif_clear_flags(portif, NETIF_FLAG_ETHARP);
 }
 
-#if 0
 static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 0, 253);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
 static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 0, 65);
-static bridgeif_initdata_t mybridge_initdata = BRIDGEIF_INITDATA1(4, 512, 16, ETH_ADDR(0, 1, 2, 3, 4, 5));
-extern struct netif netif_data;
-#endif
 
 void
 bridge_setup(void)
 {
 	err_t err;
 	struct netif *netif;
-	netif=netif_add_noaddr(&radio, NULL, radio_netif_init_cb, ip_input);
+	netif=netif_add(&radio, &ipaddr, &netmask, &gateway, NULL, radio_netif_init_cb, ethernet_input);
 	radio_add_br(&netif_data_eth);
 #if 0
 	debug("radio %p\r\n",netif);
