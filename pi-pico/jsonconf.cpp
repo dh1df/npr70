@@ -39,7 +39,7 @@ static uint8_t internal_modulation;
 static float internal_frequency;
 static float internal_shift;
 static uint16_t internal_mac_ls_bytes;
-static int xconfig_count=3;
+static int xconfig_count=2;
 
 struct config {
 	const char *name;
@@ -49,7 +49,6 @@ struct config {
 } config[]={
 	CONF_STRING32(wifi_id,CONF_wifi_id,""),
 	CONF_STRING32(wifi_passphrase,CONF_wifi_passphrase,""),
-	CONF_UINT32(client_int_size,CONF_radio_IP_size_internal,"0"),
 	CONF_BOOL(is_master,is_TDMA_master,"false"),
 	CONF_STRING13(callsign,CONF_radio_my_callsign+2,"N0CALL-1       "),
 	CONF_BOOL(telnet_last_active,is_telnet_active,"true"),
@@ -313,6 +312,7 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 	memset(CONF_radio_my_callsign, 0, sizeof(CONF_radio_my_callsign));
 	unsigned char modul_temp;
 
+
 	for (i = 0 ; i < sizeof(config)/sizeof(config[0]) ; i++) {
 		const char *name=config[i].name;
 		const char *val=NULL;
@@ -357,6 +357,20 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
                 CONF_frequency_HD = CONF_DEF_FREQ; // force to default frequency
         }
 	CONF_freq_shift = internal_shift*1000;
+
+	//Check if the Wifi SSID is set (greater than zero) -> else overwrite with coprocessor values.
+	if(strlen(CONF_wifi_id) == 0)
+	{
+		//Prevent reading from invalid values..
+		#ifdef WIFI_SSID
+			strncpy(CONF_wifi_id, WIFI_SSID, 32);
+		#endif
+
+		#ifdef WIFI_PASSWORD
+			strncpy(CONF_wifi_passphrase, WIFI_PASSWORD, 32);
+		#endif
+	}
+
 	LAN_conf_applied=LAN_conf_saved;
         if ( (is_TDMA_master) && (CONF_master_FDD == 1) ) { // FDD Master down
                 G_FDD_trig_pin->output();
