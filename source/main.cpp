@@ -298,7 +298,6 @@ void init2(void)
 		//SI4463_radio_start();
 		RADIO_on(1, 0, 1);//init state, no reconfigure, HMI output
 	}
-	HMI_printf("ready> ");
 	slow_timer.start();
 
 	
@@ -313,6 +312,7 @@ int main()
     init1();
     NFPR_config_read(&Random_pin);
     init2();
+    HMI_prompt(NULL);
 
 
     
