@@ -99,11 +99,11 @@ static struct command commands[]={
 };
 
 static struct command display_commands[]={
+#ifdef CUSTOM_DISPLAY_COMMANDS
+	CUSTOM_DISPLAY_COMMANDS
+#endif
 	{"config", HMI_cmd_display_config},
 	{"DHCP_ARP", HMI_cmd_display_dhcp_arp},
-#ifdef HAVE_DISPLAY_NET
-	{"net", cmd_display_net},
-#endif
 	{"static", HMI_cmd_display_static},
 };
 
@@ -216,7 +216,8 @@ int telnet_loop (W5500_chip* W5500) {
 		TX_data[7] = 0xFB; //WILL
 		TX_data[8] = 0x03; //Suppr GA 
 		TX_data[9] = 0;
-		strcat((char*)TX_data, "NPR modem\r\nready> ");
+		strcat((char*)TX_data, "NPR modem\r\n");
+		HMI_prompt(NULL);
 		W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, 27, 0); //27
 		//HMI_printf("ready>");
 		is_telnet_opened = 1;
@@ -227,12 +228,13 @@ int telnet_loop (W5500_chip* W5500) {
 	
 	if (current_state == W5500_SOCK_WAIT) { // close wait to close 
 		W5500_write_byte(W5500, W5500_Sn_CR, TELNET_SOCKET, 0x10); 
-		printf("telnet connexion closed\r\nready> "); 
+		printf("telnet connexion closed\r\n");
 		fflush(stdout);
 		is_telnet_opened = 0;
 		current_rx_line_count = 0;
 		echo_ON = 1;
 		ctx.ret = 0;
+		HMI_prompt(NULL);
 	}
 	
 	if (current_state == W5500_SOCK_CLOSED) { //closed to open
@@ -255,8 +257,9 @@ int telnet_loop (W5500_chip* W5500) {
 			is_telnet_opened = 0;
 			echo_ON = 1;
 			ctx.ret = 0;
-			printf("telnet connexion closed\r\nready> "); 
+			printf("telnet connexion closed\r\n"); 
 			fflush(stdout);
+			HMI_prompt(NULL);
 		}
 		//timeout 
 	}
@@ -551,8 +554,9 @@ void HMI_force_exit(void) {
 		is_telnet_opened = 0;
 		echo_ON = 1;
 		ctx.ret = 0;
-		printf("telnet connexion closed\r\nready> "); 
+		printf("telnet connexion closed\r\n"); 
 		fflush(stdout);
+		HMI_prompt(NULL);
 	}
 }
 
@@ -562,11 +566,13 @@ int HMI_cmd_exit(struct context *c) {
 		is_telnet_opened = 0;
 		echo_ON = 1;
 		ctx.ret = 0;
-		printf("telnet connexion closed\r\nready> "); 
+		printf("telnet connexion closed\r\n"); 
 		fflush(stdout);
+		HMI_prompt(NULL);
 	} else {
-		printf("exit only valid for telnet\r\nready> ");
+		printf("exit only valid for telnet\r\n");
 		fflush(stdout);
+		HMI_prompt(NULL);
 	}
 	return 1;
 }
@@ -728,7 +734,7 @@ static int HMI_cmd_set_radio_on_at_startup(struct context *c)
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
 		CONF_radio_default_state_ON_OFF = temp_uchar;
-		HMI_printf("radio_on_at_start '%s'\r\nready> ", c->s2);
+		HMI_printf("radio_on_at_start '%s'\r\n", c->s2);
 	}
 	return 3;
 }
@@ -744,9 +750,10 @@ static int HMI_cmd_set_dhcp_active(struct context *c)
 		} else {
 			strcpy (DHCP_warning, ""); 
 		}
-		HMI_printf("DHCP_active: '%s'%s\r\nready> ", c->s2, DHCP_warning);
+		HMI_printf("DHCP_active: '%s'%s\r\n", c->s2, DHCP_warning);
+		return 3;
 	}
-	return 3;
+	return 2;
 }
 
 static int HMI_cmd_set_modem_ip(struct context *c)
@@ -953,7 +960,8 @@ static int HMI_cmd_set(struct context *c) {
 		if (command_understood)
 			return command_understood;
 		else {
-			HMI_printf("unknown config param\r\nready> ");
+			HMI_cprintf(c,"unknown config param\r\n");
+			HMI_prompt(c);
 		}
 	} else {
 		HMI_cprintf(c, "set command requires 2 param, first one can be one of\r\n");
