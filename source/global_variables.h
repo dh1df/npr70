@@ -179,6 +179,7 @@ extern unsigned char G_connect_rejection_reason;
 extern int G_temperature_SI4463;
 extern int G_need_temperature_check;
 extern unsigned long int CONF_radio_IP_size_requested;
+extern unsigned long int CONF_radio_IP_size_internal;
 extern unsigned char CONF_radio_static_IP_requested;
 extern unsigned char CONF_radio_state_ON_OFF;
 extern unsigned char CONF_radio_default_state_ON_OFF;

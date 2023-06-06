@@ -364,7 +364,7 @@ void signaling_connect_req_TX(void) {
 	loc_data[0] = 0x05;	// signaling type = connection request
 	loc_data[1] = 21; 	// field size
 	strcpy ((char*)(loc_data+2), CONF_radio_my_callsign); // callsign
-	IP_int2char (CONF_radio_IP_size_requested, loc_data + 18);
+	IP_int2char (CONF_radio_IP_size_requested + CONF_radio_IP_size_internal, loc_data + 18);
 	loc_data[22] = CONF_radio_static_IP_requested;
 	signaling_TX_add_entry (loc_data, 23);
 	signaling_frame_push();

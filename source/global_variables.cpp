@@ -125,6 +125,7 @@ unsigned char G_connect_rejection_reason;
 int G_temperature_SI4463;
 int G_need_temperature_check = 0;
 unsigned long int CONF_radio_IP_size_requested;
+unsigned long int CONF_radio_IP_size_internal;
 unsigned char CONF_radio_static_IP_requested;
 unsigned char CONF_radio_state_ON_OFF = 0;
 unsigned char CONF_radio_default_state_ON_OFF;
