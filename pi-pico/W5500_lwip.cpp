@@ -6,6 +6,7 @@
 #include "common.h"
 #include "main.h"
 #include "../source/HMI_telnet.h"
+#include "../source/Eth_IPv4.h"
 
 #define LED_PIN     25
 
@@ -13,6 +14,13 @@ struct W5500_channel W5500_channelx[NR_SOCKETS];
 static struct netif radio;
 static struct netif *radiobr[4];
 static err_t radio_output_br_fn(struct pbuf *p);
+
+static void
+IP_int2lwip(unsigned long int IP_int, ip4_addr_t *ip)
+{
+	IP_int2char(IP_int, (unsigned char *)ip);
+}
+
 
 struct W5500_channel *
 W5500_chan(int idx)
@@ -312,7 +320,10 @@ W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 void
 W5500_re_configure(void)
 {
+	ip4_addr_t addr;
 	debug("W5500_re_configure\r\n");
+	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &addr);
+	netif_set_ipaddr(&radio, &addr);
 }
 
 int
@@ -327,7 +338,7 @@ W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data
 	data[0]=0;
 	data[1]=0;
 	memcpy(data+2,(char *)p->payload, len);
-	pbuf_free(p);
+        pbuf_free(p);
 	return len+2;
 }
 
@@ -453,11 +464,10 @@ static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 {
 	struct W5500_channel *c=W5500_chan(1);
 	// debug("radio_input_fn\r\n");
-	radio.input(p, &radio);
-#if 0
-	W5500_enqueue_pbuf(c, p);
+	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	Int_W5500.setstate(0);
-#endif
+	if (radio.input(p, &radio) != ERR_OK) 
+		pbuf_free(p);
 	return ERR_OK;
 }
 
@@ -482,14 +492,11 @@ static err_t radio_netif_init_cb(struct netif *netif)
 {
 	LWIP_ASSERT("netif != NULL", (netif != NULL));
 	debug("radio_netif_init_cb\r\n");
+	int i;
 	netif->mtu = 1500;
 	netif->hwaddr_len = 6;
-	netif->hwaddr[0]=0x1;
-	netif->hwaddr[1]=0x2;
-	netif->hwaddr[2]=0x3;
-	netif->hwaddr[3]=0x4;
-	netif->hwaddr[4]=0x5;
-	netif->hwaddr[5]=0x7;
+	for (i = 0 ; i < 6 ; i++)
+		netif->hwaddr[i]=CONF_modem_MAC[i];
 	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	netif->state = NULL;
 	netif->name[0] = 'r';
