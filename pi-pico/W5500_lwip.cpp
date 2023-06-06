@@ -21,7 +21,6 @@ IP_int2lwip(unsigned long int IP_int, ip4_addr_t *ip)
 	IP_int2char(IP_int, (unsigned char *)ip);
 }
 
-
 struct W5500_channel *
 W5500_chan(int idx)
 {
@@ -63,6 +62,14 @@ W5500_next_size(struct W5500_channel *c)
 		return 0;
 	return c->pbuf->len;
 }
+
+static void
+W5500_update_int(void)
+{
+	struct W5500_channel *c=W5500_chan(1);
+	Int_W5500.setstate(W5500_next_size(c) == 0);
+}
+
 
 err_t
 W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
@@ -248,6 +255,7 @@ W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* dat
 		debug("raw send %d %d\r\n",size,send_mac);
 		memcpy(p->payload, data, size);
 		radio_output_br_fn(p);
+		pbuf_free(p);
 	}
 	else
 		W5500_transmit(c, data, size);
@@ -334,6 +342,8 @@ W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data
 	if (!c)
 		return 0;
 	struct pbuf *p=W5500_dequeue(c);
+	if (!p)
+		return 0;
 	len=p->len;
 	data[0]=0;
 	data[1]=0;
@@ -465,7 +475,7 @@ static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 	struct W5500_channel *c=W5500_chan(1);
 	// debug("radio_input_fn\r\n");
 	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
-	Int_W5500.setstate(0);
+	W5500_update_int();
 	if (radio.input(p, &radio) != ERR_OK) 
 		pbuf_free(p);
 	return ERR_OK;
@@ -473,11 +483,15 @@ static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 
 static err_t radio_output_br_fn(struct pbuf *p)
 {
+	if (!p)
+		return ERR_OK;
 	return radiobr[0]->linkoutput(radiobr[0], p);
 }
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
+	if (!p)
+		return ERR_OK;
 	// ebug("radio_linkoutput_fn\r\n");
 	return radiobr[0]->linkoutput(radiobr[0], p);
 }
