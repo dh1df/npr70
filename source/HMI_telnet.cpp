@@ -50,6 +50,13 @@ static int HMI_cmd_version(struct context *c);
 static int HMI_cmd_who(struct context *c);
 
 
+static int HMI_cmd_set_callsign(struct context *c);
+static int HMI_cmd_set_dns_active(struct context *c);
+static int HMI_cmd_set_def_route_active(struct context *c);
+static int HMI_cmd_set_is_master(struct context *c);
+static int HMI_cmd_set_telnet_active(struct context *c);
+static int HMI_cmd_set_telnet_routed(struct context *c);
+
 static struct command commands[]={
 #ifdef HAVE_CALL_BOOTLOADER
 	{"bootloader", HMI_cmd_bootloader},
@@ -71,11 +78,27 @@ static struct command commands[]={
 #endif
 };
 
-static int HMI_command_help(struct context *ctx, struct command *cmd, int len)
+static struct command set_commands[]={
+	{"callsign", HMI_cmd_set_callsign},
+	{"dns_active", HMI_cmd_set_dns_active},
+	{"def_route_active", HMI_cmd_set_def_route_active},
+	{"is_master", HMI_cmd_set_is_master},
+	{"telnet_active", HMI_cmd_set_telnet_active},
+	{"telnet_routed", HMI_cmd_set_telnet_routed},
+
+};
+
+static int HMI_command_help(struct context *ctx, struct command *cmd, int len, int hor)
 {
-	int i;
+	int i,sum;
 	for (i = 0 ; i < len ; i++) {
-		HMI_cprintf(ctx,"%s\r\n",cmd->cmd);
+		if (hor) {
+			HMI_cprintf(ctx, " %s",cmd->cmd);
+			sum+=strlen(cmd->cmd)+1;
+			if (sum > 60)
+				HMI_cprintf(ctx, "\r\n");	
+		} else
+			HMI_cprintf(ctx,"%s\r\n",cmd->cmd);
 		cmd++;
 	}
 	return 0;
@@ -85,7 +108,7 @@ int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, i
 {
 	int i;
 	if (help && !strcmp(s,"help"))
-		return HMI_command_help(ctx, cmd, len);
+		return HMI_command_help(ctx, cmd, len,0 );
 	for (i = 0 ; i < len ; i++) {
 		if (!strcmp(cmd->cmd, s))
 			return cmd->func(ctx);
@@ -372,6 +395,7 @@ int HMI_exec(struct context *c)
 	char *loc_param1_str = c->s1;
 	char *loc_param2_str = c->s2;
 	int command_understood=HMI_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]), 1);
+	printf("\r\ncommand_understood %d\r\n");
 	c->ret = command_understood;
 	if (command_understood == 4 || command_understood == 5) /* 4=Call again slow, 5=Call again fast */
 		echo_ON = 0;
@@ -558,7 +582,85 @@ void HMI_display_static(void) {
 	
 }
 
-int HMI_cmd_set(struct context *c) {
+int HMI_cmd_set_callsign(struct context *c)
+{
+	RADIO_off_if_necessary(1);
+	strcpy (CONF_radio_my_callsign+2, c->s2);
+	CONF_radio_my_callsign[0] = CONF_modem_MAC[4];
+	CONF_radio_my_callsign[1] = CONF_modem_MAC[5];
+	CONF_radio_my_callsign[15] = 0;
+	RADIO_restart_if_necessary(1, 0, 1);
+	HMI_cprintf(c, "new callsign '%s'\r\n", CONF_radio_my_callsign+2);
+	return 2;
+}
+
+int HMI_cmd_set_is_master(struct context *c)
+{
+	char DHCP_warning[50];
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		RADIO_off_if_necessary(1);
+		is_TDMA_master = (temp_uchar == 1);
+		RADIO_restart_if_necessary(1, 0, 1);
+		if ( (is_TDMA_master) && (LAN_conf_saved.DHCP_server_active == 1) ) {
+			strcpy (DHCP_warning, " (warning, DHCP inhibited in master mode)"); 
+		} else {
+			strcpy (DHCP_warning, ""); 
+		}
+		HMI_cprintf(c, "Master '%s'%s\r\n", c->s2, DHCP_warning);
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_telnet_active(struct context *c)
+{
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		if(is_telnet_opened) { HMI_cmd_exit(NULL); }
+		is_telnet_active = temp_uchar;
+		HMI_printf("telnet active '%s'\r\n", c->s2);
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_telnet_routed(struct context *c)
+{
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		is_telnet_routed = temp_uchar;
+		//W5500_re_configure_gateway(W5500_p1);
+		HMI_printf("telnet routed '%s'\r\n", c->s2);
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_dns_active(struct context *c)
+{
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		RADIO_off_if_necessary(1);
+		LAN_conf_saved.LAN_DNS_activ = temp_uchar;
+		RADIO_restart_if_necessary(1, 0, 1);
+		HMI_printf("DNS active '%s'", c->s2);
+	}
+	return 2;
+}
+
+static int HMI_cmd_set_def_route_active(struct context *c)
+{
+	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
+	if ( (temp_uchar==0) || (temp_uchar==1) ) {
+		RADIO_off_if_necessary(1);
+		LAN_conf_saved.LAN_def_route_activ = temp_uchar;
+		//W5500_re_configure_gateway(W5500_p1);
+		RADIO_restart_if_necessary(1, 0, 1);
+		HMI_printf("default route active '%s'\r\n", c->s2);
+	}
+	return 2;
+}
+
+static int HMI_cmd_set(struct context *c) {
+	char DHCP_warning[50];
 	char* loc_param1=c->s1;
 	char* loc_param2=c->s2;
 	int temp;
@@ -566,67 +668,11 @@ int HMI_cmd_set(struct context *c) {
 	unsigned long int temp_uint;
 	float frequency;
 	// unsigned char previous_freq_band;
-	char DHCP_warning[50];
 	if ((loc_param1) && (loc_param2)) {
-		if (strcmp(loc_param1, "callsign") == 0) {
-			RADIO_off_if_necessary(1);
-			strcpy (CONF_radio_my_callsign+2, loc_param2);
-			CONF_radio_my_callsign[0] = CONF_modem_MAC[4];
-			CONF_radio_my_callsign[1] = CONF_modem_MAC[5];
-			CONF_radio_my_callsign[15] = 0;
-			RADIO_restart_if_necessary(1, 0, 1);
-			HMI_printf("new callsign '%s'\r\nready> ", CONF_radio_my_callsign+2);
-		} 
-		else if (strcmp(loc_param1, "is_master") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				RADIO_off_if_necessary(1);
-				is_TDMA_master = (temp_uchar == 1);
-				RADIO_restart_if_necessary(1, 0, 1);
-				if ( (is_TDMA_master) && (LAN_conf_saved.DHCP_server_active == 1) ) {
-					strcpy (DHCP_warning, " (warning, DHCP inhibited in master mode)"); 
-				} else {
-					strcpy (DHCP_warning, ""); 
-				}
-				HMI_printf("Master '%s'%s\r\nready> ", loc_param2, DHCP_warning);
-			}
-		}
-		else if (strcmp(loc_param1, "telnet_active") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				if(is_telnet_opened) { HMI_cmd_exit(NULL); }
-				is_telnet_active = temp_uchar;
-				HMI_printf("telnet active '%s'\r\nready> ", loc_param2);
-			}
-		}
-		else if (strcmp(loc_param1, "telnet_routed") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				is_telnet_routed = temp_uchar;
-				//W5500_re_configure_gateway(W5500_p1);
-				HMI_printf("telnet routed '%s'\r\nready> ", loc_param2);
-			}
-		}
-		else if (strcmp(loc_param1, "DNS_active") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_DNS_activ = temp_uchar;
-				RADIO_restart_if_necessary(1, 0, 1);
-				HMI_printf("DNS active '%s'\r\nready> ", loc_param2);
-			}
-		}
-		else if (strcmp(loc_param1, "def_route_active") == 0) {
-			temp_uchar = HMI_yes_no_2int(loc_param2);
-			if ( (temp_uchar==0) || (temp_uchar==1) ) {
-				RADIO_off_if_necessary(1);
-				LAN_conf_saved.LAN_def_route_activ = temp_uchar;
-				//W5500_re_configure_gateway(W5500_p1);
-				RADIO_restart_if_necessary(1, 0, 1);
-				HMI_printf("default route active '%s'\r\nready> ", loc_param2);
-			}
-		}
-		else if (strcmp(loc_param1, "master_FDD") == 0) {
+		int command_understood = HMI_command_parse(c, c->s1, set_commands, sizeof(set_commands)/sizeof(set_commands[0]), 0);
+		if (command_understood)
+			return command_understood;
+		if (strcmp(loc_param1, "master_FDD") == 0) {
 			if(strcmp(loc_param2,"no") == 0) {
 				CONF_master_FDD = 0;
 				RADIO_off_if_necessary(1);
@@ -647,31 +693,6 @@ int HMI_cmd_set(struct context *c) {
 			}
 			HMI_printf("ready> ");
 		}
-		//else if (strcmp(loc_param1, "trans_method") == 0) {
-		//	if(strcmp(loc_param2,"IP") == 0) {
-		//		CONF_transmission_method = 0;
-		//		RADIO_off_if_necessary(1);
-		//		RADIO_restart_if_necessary(1, 0, 1);
-		//	}
-		//	else if(strcmp(loc_param2,"Eth") == 0) {
-		//		CONF_transmission_method = 1;
-		//		RADIO_off_if_necessary(1);
-		//		RADIO_restart_if_necessary(1, 0, 1);
-		//	}
-		//	else {
-		//		HMI_printf("  wrong value\r\n");
-		//	}
-		//	HMI_printf("ready> ");
-		//}
-		//else if (strcmp(loc_param1, "client_static_IP") == 0) {
-		//	temp_uchar = HMI_yes_no_2int(loc_param2);
-		//	if ( (temp_uchar==0) || (temp_uchar==1) ) {
-		//		RADIO_off_if_necessary(1);
-		//		CONF_radio_static_IP_requested = temp_uchar;
-		//		HMI_printf("client static IP '%s'\r\nready> ", loc_param2);
-		//		RADIO_restart_if_necessary(1, 0, 1);
-		//	}
-		//}
 		else if (strcmp(loc_param1, "radio_on_at_start") == 0) {
 			temp_uchar = HMI_yes_no_2int(loc_param2);
 			if ( (temp_uchar==0) || (temp_uchar==1) ) {
@@ -840,13 +861,9 @@ int HMI_cmd_set(struct context *c) {
 			HMI_printf("unknown config param\r\nready> ");
 		}
 	} else {
-		HMI_printf_detail("set command requires 2 param\r\n"
-			   "set callsign|is_master|telnet_active|telnet_routed|DNS_active value\r\n"
-		           "set def_route_active|master_FDD|radio_on_at_start|DHCP_active value\r\n"
-			   "set modem_IP|netmask|def_route_val|DNS_value|IP_begin value\r\n"
-			   "set master_down_IP|master_IP_size|client_req_size|frequency value\r\n"
-			   "set freq_shift|RF_power|modulation|radio_netw_ID value\r\n"
-			   "ready> ");
+		HMI_cprintf(c, "set command requires 2 param, first one can be one of\r\n");
+		HMI_command_help(c, set_commands, sizeof(set_commands)/sizeof(set_commands[0]),1);
+		return 2;
 	}
 	return 1;
 }
