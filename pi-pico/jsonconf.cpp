@@ -313,6 +313,7 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
 	memset(CONF_radio_my_callsign, 0, sizeof(CONF_radio_my_callsign));
 	unsigned char modul_temp;
 
+
 	for (i = 0 ; i < sizeof(config)/sizeof(config[0]) ; i++) {
 		const char *name=config[i].name;
 		const char *val=NULL;
@@ -357,6 +358,20 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
                 CONF_frequency_HD = CONF_DEF_FREQ; // force to default frequency
         }
 	CONF_freq_shift = internal_shift*1000;
+
+	//Check if the Wifi SSID is set (greater than zero) -> else overwrite with coprocessor values.
+	if(strlen(CONF_wifi_id) == 0)
+	{
+		//Prevent reading from invalid values..
+		#ifdef WIFI_SSID
+			strncpy(CONF_wifi_id, WIFI_SSID, 32);
+		#endif
+
+		#ifdef WIFI_PASSWORD
+			strncpy(CONF_wifi_passphrase, WIFI_PASSWORD, 32);
+		#endif
+	}
+
 	LAN_conf_applied=LAN_conf_saved;
         if ( (is_TDMA_master) && (CONF_master_FDD == 1) ) { // FDD Master down
                 G_FDD_trig_pin->output();

@@ -124,7 +124,7 @@ init_wifi(void)
 	// however it doesn't use the `CYW43_NO_POWERSAVE_MODE` value, so we do this instead:
 	cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
 
-	if (cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK)) {
+	if (cyw43_arch_wifi_connect_async(CONF_wifi_id, CONF_wifi_passphrase, CYW43_AUTH_WPA2_AES_PSK)) {
 		debug("failed wifi connect\r\n");
 	} else {
 		debug("wifi connecting\r\n");
