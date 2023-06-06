@@ -57,6 +57,11 @@ static int HMI_cmd_set_is_master(struct context *c);
 static int HMI_cmd_set_telnet_active(struct context *c);
 static int HMI_cmd_set_telnet_routed(struct context *c);
 
+static int HMI_cmd_display_config(struct context *c);
+static int HMI_cmd_display_dhcp_arp(struct context *c);
+static int HMI_cmd_display_net(struct context *c);
+static int HMI_cmd_display_static(struct context *c);
+
 static struct command commands[]={
 #ifdef HAVE_CALL_BOOTLOADER
 	{"bootloader", HMI_cmd_bootloader},
@@ -76,6 +81,15 @@ static struct command commands[]={
 #ifdef CUSTOM_COMMANDS
 	CUSTOM_COMMANDS
 #endif
+};
+
+static struct command display_commands[]={
+	{"config", HMI_cmd_display_config},
+	{"DHCP_ARP", HMI_cmd_display_dhcp_arp},
+#ifdef HAVE_DISPLAY_NET
+	{"net", cmd_display_net},
+#endif
+	{"static", HMI_cmd_display_static},
 };
 
 static struct command set_commands[]={
@@ -343,23 +357,10 @@ static int HMI_cmd_radio(struct context *c)
 
 static int HMI_cmd_display(struct context *c)
 {
-	if (strcmp(c->s1, "config") == 0) {//display config
-		HMI_display_config();
-	}
-	else if (strcmp(c->s1, "static") == 0) {//display static alloc
-		HMI_display_static();
-	}
-	else if (strcmp(c->s1, "DHCP_ARP") == 0) {//display DHCP_ARP entries
-		DHCP_ARP_print_entries();
-	}
-#ifdef HAVE_DISPLAY_NET
-	else if (strcmp(c->s1, "net") == 0) {//display network status
-		return cmd_display_net(&ctx);
-	}
-#endif
-	else {
-		HMI_printf("unknown display command\r\n");
-	}
+	int command_understood = HMI_command_parse(c, c->s1, display_commands, sizeof(display_commands)/sizeof(display_commands[0]), 1);
+	if (command_understood)
+		return command_understood;
+	HMI_printf("unknown display command, use display help for help\r\n");
 	return 2;
 }
 
@@ -540,7 +541,7 @@ static char HMI_yes_no[2][4]={'n','o',0,0, 'y','e','s',0};
 // static char HMI_trans_modes[2][4]={'I','P',0,0,'E','t','h',0};
 static char HMI_master_FDD[3][5]={'n','o',0,0,0,'d','o','w','n',0,'u','p',0,0,0};
 
-void HMI_display_config(void) {
+int HMI_cmd_display_config(struct context *c) {
 	unsigned char IP_loc[8];
 
 	HMI_printf("CONFIG:\r\n  callsign: '%s'\r\n  is_master: %s\r\n  MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n", CONF_radio_my_callsign+2, HMI_yes_no[is_TDMA_master],CONF_modem_MAC[0],CONF_modem_MAC[1],CONF_modem_MAC[2],CONF_modem_MAC[3],CONF_modem_MAC[4],CONF_modem_MAC[5]);
@@ -576,10 +577,16 @@ void HMI_display_config(void) {
 		HMI_printf("  IP_begin: %i.%i.%i.%i\r\n", IP_loc[0], IP_loc[1],IP_loc[2],IP_loc[3]);
 		HMI_printf("  client_req_size: %ld\r\n  DHCP_active: %s\r\n", CONF_radio_IP_size_requested, HMI_yes_no[LAN_conf_saved.DHCP_server_active]);
 	}
+	return 2;
 }
 
-void HMI_display_static(void) {
-	
+int HMI_cmd_display_dhcp_arp(struct context *c) {
+	DHCP_ARP_print_entries();
+	return 2;
+}
+
+int HMI_cmd_display_static(struct context *c) {
+	return 2;
 }
 
 int HMI_cmd_set_callsign(struct context *c)
