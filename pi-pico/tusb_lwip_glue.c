@@ -45,25 +45,6 @@ static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 7, 1);
 static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
 static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 7, 2);
 
-/* database IP addresses that can be offered to the host; this must be in RAM to store assigned MAC addresses */
-static dhcp_entry_t entries[] =
-{
-    /* mac ip address                          lease time */
-    { {0}, IPADDR4_INIT_BYTES(192, 168, 7, 2), 24 * 60 * 60 },
-    { {0}, IPADDR4_INIT_BYTES(192, 168, 7, 3), 24 * 60 * 60 },
-    { {0}, IPADDR4_INIT_BYTES(192, 168, 7, 4), 24 * 60 * 60 },
-};
-
-static const dhcp_config_t dhcp_config =
-{
-    .router = IPADDR4_INIT_BYTES(0, 0, 0, 0),  /* router address (if any) */
-    .port = 67,                                /* listen port */
-    .dns = IPADDR4_INIT_BYTES(0, 0, 0, 0),     /* dns server (if any) */
-    "",                                        /* dns suffix */
-    TU_ARRAY_SIZE(entries),                    /* num entry */
-    entries                                    /* entries */
-};
-
 static err_t linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
     (void)netif;
