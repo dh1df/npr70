@@ -181,6 +181,7 @@ int main()
 
 	tcp_setup();
 	gpio_put(LED_PIN, 1);
+	HMI_prompt(NULL);
 
 	while (true) {
 		loop();
