@@ -32,6 +32,7 @@ public:
 #define putc(c,s) s.sputc(c)
 
 typedef unsigned int us_timestamp_t;
+typedef unsigned int ns_timestamp_t;
 
 class SPI {
   void * port;
@@ -112,5 +113,6 @@ public:
 void NVIC_SystemReset(void);
 void wait_ms(int ms);
 void wait_us(us_timestamp_t us);
+void wait_ns(us_timestamp_t ns);
 #define __MBED_H__
 #endif

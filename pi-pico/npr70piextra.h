@@ -30,6 +30,7 @@
         {"xdisplay",cmd_xdisplay},
 
 #define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY
+#define CUSTOM_DISPLAY_COMMANDS {"net",cmd_display_net},
 
 void debug(const char *str, ...);
 struct context;

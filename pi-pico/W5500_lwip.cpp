@@ -17,6 +17,8 @@ static struct netif bridge;
 static struct netif *bridge_port[NUM_BRIDGE_PORTS];
 static err_t radio_output_raw_fn(struct pbuf *p);
 
+static int verbose;
+
 static void
 IP_int2lwip(unsigned long int IP_int, ip4_addr_t *ip)
 {
@@ -80,7 +82,8 @@ W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 	if (c->udp) {
 		struct pbuf *pbuf=pbuf_alloc(PBUF_TRANSPORT, len, PBUF_POOL);
 		memcpy(pbuf->payload, buffer, len);
-		printf("udp_sendto_if\r\n");
+		if (verbose)
+			printf("udp_sendto_if\r\n");
 		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &bridge);
 		pbuf_free(pbuf);
 	} else {
@@ -177,7 +180,8 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 void W5500_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
 	struct W5500_channel *c=(struct W5500_channel *)arg;
-	debug("W5500_udp_recv\r\n");
+	if (verbose)
+		debug("W5500_udp_recv\r\n");
 	if (c && p->len && p->payload) {
 		W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	}
@@ -334,6 +338,14 @@ W5500_re_configure(void)
 	debug("W5500_re_configure\r\n");
 	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &addr);
 	netif_set_ipaddr(&bridge, &addr);
+	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &addr);
+	netif_set_netmask(&bridge, &addr);
+	if (CONF_radio_IP_size_internal) {
+		IP_int2lwip(LAN_conf_applied.DHCP_range_start+LAN_conf_applied.DHCP_range_size+CONF_radio_IP_size_internal-1, &addr);
+		netif_set_ipaddr(&radio, &addr);
+		IP_int2lwip(0xffffffff, &addr);
+		netif_set_netmask(&radio, &addr);
+	}
 }
 
 int
@@ -492,7 +504,8 @@ static err_t radio_output_raw_fn(struct pbuf *p)
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
-	debug("radio_linkoutput_fn\r\n");
+	if (verbose)
+		debug("radio_linkoutput_fn\r\n");
 	struct W5500_channel *c=W5500_chan(1);
 	// debug("radio_input_fn\r\n");
 	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
@@ -506,7 +519,6 @@ static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 static err_t radio_netif_init_cb(struct netif *netif)
 {
 	LWIP_ASSERT("netif != NULL", (netif != NULL));
-	debug("radio_netif_init_cb\r\n");
 	int i;
 	netif->mtu = 1500;
 	netif->hwaddr_len = 6;
@@ -524,11 +536,14 @@ static err_t radio_netif_init_cb(struct netif *netif)
 static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 {
 	int i;
-	printf("bridge_input_fn %c%c %p\r\n",netif->name[0],netif->name[1],p);
+	if (verbose)
+		printf("bridge_input_fn %c%c %p\r\n",netif->name[0],netif->name[1],p);
 	for (i = 0 ; i < NUM_BRIDGE_PORTS; i++) {
-		if (bridge_port[i] && bridge_port[i] != netif)
-			printf("bridge linkoutput %c%c %p\r\n",bridge_port[i]->name[0],bridge_port[i]->name[1], p);
+		if (bridge_port[i] && bridge_port[i] != netif) {
+			if (verbose)
+				printf("bridge linkoutput %c%c %p\r\n",bridge_port[i]->name[0],bridge_port[i]->name[1], p);
 			bridge_port[i]->linkoutput(bridge_port[i], p);
+		}
 	}
 	if (netif != &bridge)
 		ethernet_input(p, &bridge);
@@ -537,7 +552,8 @@ static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 
 static err_t bridge_linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
-	printf("bridge_linkoutput_fn %c%c %p\r\n",netif->name[0],netif->name[1],p);
+	if (verbose)
+		printf("bridge_linkoutput_fn %c%c %p\r\n",netif->name[0],netif->name[1],p);
 	return bridge_input_fn(p, netif);
 }
 
@@ -557,7 +573,6 @@ static void bridge_add_if(struct netif *portif)
 static err_t bridge_init_cb(struct netif *netif)
 {
 	LWIP_ASSERT("netif != NULL", (netif != NULL));
-	debug("bridge_init_cb\r\n");
 	int i;
 	netif->mtu = 1500;
 	netif->hwaddr_len = 6;
@@ -582,8 +597,8 @@ bridge_setup(void)
 {
 	err_t err;
 	struct netif *netif;
-	netif=netif_add_noaddr(&bridge, NULL, bridge_init_cb, ethernet_input);
 	netif=netif_add(&radio, &ipaddr, &netmask, &gateway, NULL, radio_netif_init_cb, ethernet_input);
+	netif=netif_add_noaddr(&bridge, NULL, bridge_init_cb, ethernet_input);
 	bridge_add_if(&radio);
 	bridge_add_if(&netif_data_eth);
 #if 0
