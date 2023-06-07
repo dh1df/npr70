@@ -487,8 +487,10 @@ static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 	// debug("radio_input_fn\r\n");
 	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	W5500_update_int();
+#if 0
 	if (netif_input->input(p, netif_input) != ERR_OK) 
 		pbuf_free(p);
+#endif
 	return ERR_OK;
 }
 
@@ -537,7 +539,9 @@ static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 	if (verbose)
 		printf("bridge_input_fn %c%c %p\r\n",netif->name[0],netif->name[1],p);
 	for (i = 0 ; i < NUM_BRIDGE_PORTS; i++) {
-		if (bridge_port[i] && bridge_port[i] != netif) {
+		struct netif *dest=bridge_port[i];
+		/* avoid loopback and feedback from modem ip to radio */
+		if (dest && dest != netif && (netif != &netif_bridge || dest != &netif_radio)) {
 			if (verbose)
 				printf("bridge linkoutput %c%c %p\r\n",bridge_port[i]->name[0],bridge_port[i]->name[1], p);
 			bridge_port[i]->linkoutput(bridge_port[i], p);

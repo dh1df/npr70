@@ -12,7 +12,8 @@
         {"rm",cmd_rm},\
         {"cat",cmd_cat},\
         {"cp",cmd_cp},\
-        {"sum",cmd_sum},
+        {"sum",cmd_sum},\
+	{"mv",cmd_mv},
 
 #define CMD_WGET\
         {"wget",cmd_wget},
@@ -47,6 +48,7 @@ int cmd_rm(struct context *c);
 int cmd_cat(struct context *c);
 int cmd_cp(struct context *c);
 int cmd_sum(struct context *c);
+int cmd_mv(struct context *c);
 int cmd_wget(struct context *c);
 int cmd_flash(struct context *c);
 int cmd_xset(struct context *c);
