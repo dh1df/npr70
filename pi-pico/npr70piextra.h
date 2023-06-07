@@ -32,7 +32,10 @@
 #define CMD_BOOTLOADER\
         {"bootloader",cmd_bootloader},
 
-#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER
+#define CMD_PING\
+        {"ping",cmd_ping},
+
+#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER CMD_PING
 #define CUSTOM_DISPLAY_COMMANDS {"net",cmd_display_net},
 
 void debug(const char *str, ...);
@@ -49,6 +52,7 @@ int cmd_flash(struct context *c);
 int cmd_xset(struct context *c);
 int cmd_xdisplay(struct context *c);
 int cmd_bootloader(struct context *c);
+int cmd_ping(struct context *c);
 void virt_EEPROM_errase_all(void);
 #if 0
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
