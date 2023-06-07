@@ -32,6 +32,7 @@ DigitalOut CS1(-1);
 DigitalOut CS2(SI4463_PIN_CS);
 InterruptIn Int_SI4463(SI4463_PIN_INT);
 DigitalIn Int_W5500(-1);
+DigitalOut CS4(ENC_PIN_CS);
 
 AnalogIn Random_pin(RANDOM_PIN);
 DigitalOut LED_RX_loc(LED_RX_PIN);
@@ -104,15 +105,6 @@ void tcp_setup(void)
 	
 }
 
-void
-init_spi(void)
-{
-	gpio_set_function(ENC_PIN_CS, GPIO_FUNC_SIO);
-	gpio_set_dir(ENC_PIN_CS, GPIO_OUT);
-	gpio_put(ENC_PIN_CS, 1);
-
-}
-
 int
 init_wifi(void)
 {
@@ -148,6 +140,7 @@ int main()
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
+	CS4=1;
 
 	wait_ms(200);
 	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
@@ -155,8 +148,6 @@ int main()
 	littlefs_init();
 	NFPR_config_read(&Random_pin);
 
-	debug("init_spi()\r\n");
-	init_spi();
 	init1();
 
 	if (cyw43_arch_init()) {
