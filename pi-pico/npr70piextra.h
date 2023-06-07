@@ -29,7 +29,10 @@
 #define CMD_XDISPLAY\
         {"xdisplay",cmd_xdisplay},
 
-#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY
+#define CMD_BOOTLOADER\
+        {"bootloader",cmd_bootloader},
+
+#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER
 #define CUSTOM_DISPLAY_COMMANDS {"net",cmd_display_net},
 
 void debug(const char *str, ...);
@@ -45,9 +48,12 @@ int cmd_wget(struct context *c);
 int cmd_flash(struct context *c);
 int cmd_xset(struct context *c);
 int cmd_xdisplay(struct context *c);
-unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
+int cmd_bootloader(struct context *c);
 void virt_EEPROM_errase_all(void);
+#if 0
+unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
 unsigned int virt_EEPROM_read(void *data);
+#endif
 void misc_loop(void);
 void call_bootloader(void);
 void ext_SRAM_read2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size);

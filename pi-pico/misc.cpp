@@ -230,3 +230,11 @@ unsigned short AnalogIn::read_u16(void)
 {
 	return adc_read() << 4;
 }
+
+int
+cmd_bootloader(struct context *c)
+{
+        HMI_close_telnet();
+        call_bootloader();
+	return 3;
+}

@@ -127,6 +127,14 @@ int cmd_cp(struct context *ctx)
 	return ret;
 }
 
+int cmd_mv(struct context *ctx)
+{
+	int err=pico_rename(ctx->s1, ctx->s2);
+	if (err)
+		return err;
+	return 3;
+}
+
 int cmd_sum(struct context *ctx)
 {
 	unsigned char buffer[256];
