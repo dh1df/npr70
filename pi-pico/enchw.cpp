@@ -14,10 +14,7 @@ extern "C" {
 #include <pico/enc28j60/ethernetif.h>
 };
 
-struct netif netif_data_eth;
-static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 6, 1);
-static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
-static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 6, 2);
+struct netif netif_eth;
 
 struct enc28j60 enc28j60 = {
 	.spi = spi0,
@@ -34,9 +31,10 @@ void enchw_poll(void)
 	uint8_t flags = enc28j60_interrupt_flags(&enc28j60);
 
 	if (flags & ENC28J60_PKTIF) {
-		struct pbuf *packet = low_level_input(&netif_data_eth);
+		struct netif *netif=&netif_eth;
+		struct pbuf *packet = low_level_input(netif);
 		if (packet != NULL) {
-			if(netif_data_eth.input(packet, &netif_data_eth) != ERR_OK) {
+			if(netif->input(packet, netif) != ERR_OK) {
                                 LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
 				pbuf_free(packet);
                         }
@@ -57,14 +55,10 @@ void enchw_poll(void)
 
 void enchw_init(void)
 {
-	struct netif *netif=&netif_data_eth;
+	struct netif *netif=&netif_eth;
 	int i;
 	for (i = 0 ; i < 6 ; i++)
 		enc28j60.mac_address[i]=CONF_modem_MAC[i];
-#if 0
-	netif_add(netif, &ipaddr, &netmask, &gateway, &enc28j60, ethernetif_init, netif_input);
-        netif_set_up(netif);
-#endif
 	netif = netif_add_noaddr(netif, &enc28j60, ethernetif_init, netif_input);
         netif_set_link_up(netif);
 	enc28j60_interrupts(&enc28j60, ENC28J60_PKTIE | ENC28J60_TXERIE | ENC28J60_RXERIE);

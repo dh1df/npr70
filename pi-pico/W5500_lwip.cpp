@@ -8,16 +8,20 @@
 #include "../source/HMI_telnet.h"
 #include "../source/Eth_IPv4.h"
 
+static void bridge_setup(void);
+static void ip_setup(void);
 #define LED_PIN     25
 #define NUM_BRIDGE_PORTS 5
 
+
 struct W5500_channel W5500_channelx[NR_SOCKETS];
-static struct netif radio;
-static struct netif bridge;
+static struct netif netif_radio;
+static struct netif netif_bridge;
 static struct netif *bridge_port[NUM_BRIDGE_PORTS];
 static err_t radio_output_raw_fn(struct pbuf *p);
 
 static int verbose;
+
 
 static void
 IP_int2lwip(unsigned long int IP_int, ip4_addr_t *ip)
@@ -84,7 +88,7 @@ W5500_transmit(struct W5500_channel *c, unsigned char *buffer, int len)
 		memcpy(pbuf->payload, buffer, len);
 		if (verbose)
 			printf("udp_sendto_if\r\n");
-		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &bridge);
+		err = udp_sendto_if(c->udp, pbuf, IP_ADDR_BROADCAST, 68, &netif_bridge);
 		pbuf_free(pbuf);
 	} else {
 		err = tcp_write(c->conn, buffer, len, TCP_WRITE_FLAG_COPY);
@@ -336,16 +340,6 @@ W5500_re_configure(void)
 {
 	ip4_addr_t addr;
 	debug("W5500_re_configure\r\n");
-	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &addr);
-	netif_set_ipaddr(&bridge, &addr);
-	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &addr);
-	netif_set_netmask(&bridge, &addr);
-	if (CONF_radio_IP_size_internal) {
-		IP_int2lwip(LAN_conf_applied.DHCP_range_start+LAN_conf_applied.DHCP_range_size+CONF_radio_IP_size_internal-1, &addr);
-		netif_set_ipaddr(&radio, &addr);
-		IP_int2lwip(0xffffffff, &addr);
-		netif_set_netmask(&radio, &addr);
-	}
 }
 
 int
@@ -370,6 +364,8 @@ void
 W5500_initial_configure(W5500_chip* SPI_p_loc)
 {
 	Int_W5500.setstate(1);
+	bridge_setup();
+	ip_setup();
 }
 
 void
@@ -487,19 +483,21 @@ debug_pbuf(const char *id, struct pbuf *p)
 static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
 {
 	struct W5500_channel *c=W5500_chan(1);
+	struct netif *netif_input=&netif_radio;
 	// debug("radio_input_fn\r\n");
 	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	W5500_update_int();
-	if (radio.input(p, &radio) != ERR_OK) 
+	if (netif_input->input(p, netif_input) != ERR_OK) 
 		pbuf_free(p);
 	return ERR_OK;
 }
 
 static err_t radio_output_raw_fn(struct pbuf *p)
 {
+	struct netif *netif=&netif_radio;
 	if (!p)
 		return ERR_OK;
-	return radio.input(p, &radio);
+	return netif->input(p, netif);
 }
 
 static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
@@ -545,8 +543,8 @@ static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 			bridge_port[i]->linkoutput(bridge_port[i], p);
 		}
 	}
-	if (netif != &bridge)
-		ethernet_input(p, &bridge);
+	if (netif != &netif_bridge)
+		ethernet_input(p, &netif_bridge);
 	return ERR_OK;
 }
 
@@ -587,20 +585,34 @@ static err_t bridge_init_cb(struct netif *netif)
 	return ERR_OK;
 }
 
-
-static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 0, 253);
-static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
-static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 0, 65);
+void
+ip_setup(void)
+{
+	ip4_addr_t addr;
+	struct netif *netif=&netif_bridge;
+	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &addr);
+	netif_set_ipaddr(netif, &addr);
+	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &addr);
+	netif_set_netmask(netif, &addr);
+#if 0
+	if (CONF_radio_IP_size_internal) {
+		IP_int2lwip(LAN_conf_applied.DHCP_range_start+LAN_conf_applied.DHCP_range_size+CONF_radio_IP_size_internal-1, &addr);
+		netif_set_ipaddr(&radio, &addr);
+		IP_int2lwip(0xffffffff, &addr);
+		netif_set_netmask(&radio, &addr);
+	}
+#endif
+}
 
 void
 bridge_setup(void)
 {
 	err_t err;
 	struct netif *netif;
-	netif=netif_add(&radio, &ipaddr, &netmask, &gateway, NULL, radio_netif_init_cb, ethernet_input);
-	netif=netif_add_noaddr(&bridge, NULL, bridge_init_cb, ethernet_input);
-	bridge_add_if(&radio);
-	bridge_add_if(&netif_data_eth);
+	netif=netif_add_noaddr(&netif_radio,  NULL, radio_netif_init_cb, ethernet_input);
+	netif=netif_add_noaddr(&netif_bridge, NULL, bridge_init_cb, ethernet_input);
+	bridge_add_if(&netif_radio);
+	bridge_add_if(&netif_eth);
 #if 0
 	debug("radio %p\r\n",netif);
 	netif=netif_add(&bridge, &ipaddr, &netmask, &gateway, &mybridge_initdata, bridgeif_init, ethernet_input);

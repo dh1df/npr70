@@ -158,7 +158,6 @@ int main()
 	debug("init_spi()\r\n");
 	init_spi();
 	init1();
-	init2();
 
 	if (cyw43_arch_init()) {
 		wifi=0;
@@ -174,7 +173,7 @@ int main()
 		init_wifi();
 	tud_setup();
 	enchw_init();
-	bridge_setup();
+	init2();
 
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);
