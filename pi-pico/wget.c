@@ -68,7 +68,7 @@ int cmd_wget(struct context *ctx)
 	char hostbuf[128];
 	int hostlen;
 	if (ctx->interrupt) {
-		return 3;
+		return 1;
 	}
 	if (ctx->poll) {
 		return wget_context.done;
