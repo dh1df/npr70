@@ -174,6 +174,12 @@ HMI_prompt_ctrlc(struct context *c)
 	HMI_printf("CTRL+c to exit...\r\n");
 }
 
+static void
+HMI_enable_echo(void)
+{
+	echo_ON = 1;
+}
+
 /**
  * Called regularly by the main loop, and manages network events (new connection,
  * data, etc)
@@ -214,12 +220,12 @@ int telnet_loop (W5500_chip* W5500) {
 		TX_data[8] = 0x03; //Suppr GA 
 		TX_data[9] = 0;
 		strcat((char*)TX_data, "NPR modem\r\n");
-		HMI_prompt(NULL);
-		W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, 27, 0); //27
+		W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, strlen((char *)TX_data), 0); //27
 		//HMI_printf("ready>");
 		is_telnet_opened = 1;
 		current_rx_line_count = 0;
-		echo_ON = 1;
+		HMI_enable_echo();
+		HMI_prompt(NULL);
 		telnet_last_activity = GLOBAL_timer.read_us();
 	}
 	
@@ -229,8 +235,8 @@ int telnet_loop (W5500_chip* W5500) {
 		fflush(stdout);
 		is_telnet_opened = 0;
 		current_rx_line_count = 0;
-		echo_ON = 1;
 		ctx.ret = 0;
+		HMI_enable_echo();
 		HMI_prompt(NULL);
 	}
 	
@@ -252,8 +258,8 @@ int telnet_loop (W5500_chip* W5500) {
 			//HMI_printf("Telnet inactivity timeout. Force exit.\r\n");
 			W5500_write_byte(W5500_p1, W5500_Sn_CR, TELNET_SOCKET, 0x08); //close TCP
 			is_telnet_opened = 0;
-			echo_ON = 1;
 			ctx.ret = 0;
+			HMI_enable_echo();
 			printf("telnet connexion closed\r\n"); 
 			fflush(stdout);
 			HMI_prompt(NULL);
@@ -444,7 +450,7 @@ int HMI_exec(struct context *c)
 	if (command_understood < 0) { /* < 0=Error */
 		HMI_cprintf(c, "ERR %d\r\n",command_understood);
 	}
-	if (command_understood >= 2 || command_understood == 0) { /* 2=Understood with prompt */
+	if (command_understood >= 2 || command_understood <= 0) { /* 2=Understood with prompt */
 		HMI_prompt(c);
 	}
 	/* 1=Understood */
@@ -468,10 +474,10 @@ void HMI_line_parse (struct context *c, char* RX_text, int RX_text_count) {
 
 void HMI_cancel_current(struct context *c) {
 	if (echo_ON ==0) {
-		echo_ON = 1;
 		c->interrupt=1;
 		c->ret=0;
 		HMI_exec(c);
+		HMI_enable_echo();
 		HMI_prompt(&ctx);
 	}
 }
@@ -545,10 +551,10 @@ void HMI_force_exit(void) {
 		//HMI_printf("\r\n\r\nNew IP config. Open new telnet session with: %i.%i.%i.%i\r\n\r\n", IP_loc[0], IP_loc[1], IP_loc[2], IP_loc[3]);
 		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08); //close TCP
 		is_telnet_opened = 0;
-		echo_ON = 1;
 		ctx.ret = 0;
 		printf("telnet connexion closed\r\n"); 
 		fflush(stdout);
+		HMI_enable_echo();
 		HMI_prompt(NULL);
 	}
 }
@@ -557,10 +563,10 @@ int HMI_cmd_exit(struct context *c) {
 	if (is_telnet_opened == 1) {
 		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08); //close TCP
 		is_telnet_opened = 0;
-		echo_ON = 1;
 		ctx.ret = 0;
 		printf("telnet connexion closed\r\n"); 
 		fflush(stdout);
+		HMI_enable_echo();
 		HMI_prompt(NULL);
 	} else {
 		printf("exit only valid for telnet\r\n");
@@ -1130,6 +1136,8 @@ void HMI_periodic_call (void) {
 		ctx.poll = 1;
 		ctx.slow_counter++;
 		ctx.ret=HMI_exec(&ctx);
+		if (ctx.ret != 4)
+			HMI_enable_echo();
 	}
 }
 
@@ -1137,6 +1145,8 @@ void HMI_periodic_fast_call (void) {
 	if (ctx.ret == 5) {
 		ctx.poll = 1;
 		ctx.ret=HMI_exec(&ctx);
+		if (ctx.ret != 5)
+			HMI_enable_echo();
 	}
 }
 
