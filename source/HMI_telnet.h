@@ -36,6 +36,7 @@ struct context {
   int interrupt;
   int slow_counter;
   int ret;
+  void *async_data;
 };
 
 struct command {
@@ -50,6 +51,8 @@ struct command {
 	HMI_cwrite(ctx, HMI_out_str, strlen(HMI_out_str));} while(0)
 
 void HMI_prompt(struct context *c);
+
+void HMI_close_telnet(void);
 
 int serial_term_loop (void);
 
@@ -67,23 +70,17 @@ void HMI_TX_test(char* duration_txt);
 
 void HMI_reboot(void);
 
-void HMI_bootloader(void);
-
 void HMI_force_exit(void);
 
 void HMI_exit(void);
-
-void HMI_display_config(void);
-
-void HMI_display_static(void);
-
-void HMI_set_command(char* loc_param1, char* loc_param2);
 
 unsigned long int HMI_str2IP(char* raw_string);
 
 unsigned char HMI_yes_no_2int(char* raw_string);
 
 void HMI_periodic_call(void);
+
+void HMI_periodic_fast_call(void);
 
 #ifdef __cplusplus
 extern "C" {

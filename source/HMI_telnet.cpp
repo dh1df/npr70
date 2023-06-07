@@ -81,9 +81,6 @@ static struct command commands[]={
 #ifdef CUSTOM_COMMANDS
 	CUSTOM_COMMANDS
 #endif
-#ifdef HAVE_CALL_BOOTLOADER
-	{"bootloader", HMI_cmd_bootloader},
-#endif
 	{"display", HMI_cmd_display},
 	{"exit", HMI_cmd_exit},
 	{"quit", HMI_cmd_exit},
@@ -525,24 +522,20 @@ int HMI_cmd_tx_test(struct context *c) {
 	return 2;
 }
 
-int HMI_cmd_reboot(struct context *c) {
+void HMI_close_telnet(void)
+{
 	if (is_telnet_opened == 1) {
 		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08);
 	}
+}
+
+
+int HMI_cmd_reboot(struct context *c) {
+	HMI_close_telnet();
 	//extern "C" void mbed_reset();
 	NVIC_SystemReset();
 	return 2;
 }
-
-#ifdef HAVE_CALL_BOOTLOADER
-int HMI_cmd_bootloader(struct context *c) {
-	if (is_telnet_opened == 1) {
-		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08);
-	}
-	call_bootloader();
-	return 2;
-}
-#endif
 
 void HMI_force_exit(void) {
 	unsigned char IP_loc[8];
@@ -1136,6 +1129,13 @@ void HMI_periodic_call (void) {
 	if (ctx.ret == 4) {
 		ctx.poll = 1;
 		ctx.slow_counter++;
+		ctx.ret=HMI_exec(&ctx);
+	}
+}
+
+void HMI_periodic_fast_call (void) {
+	if (ctx.ret == 5) {
+		ctx.poll = 1;
 		ctx.ret=HMI_exec(&ctx);
 	}
 }

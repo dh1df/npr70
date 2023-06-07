@@ -143,6 +143,7 @@ void loop(void)
 		}
 	}
 	serial_term_loop();
+	HMI_periodic_fast_call();
 
 #ifndef HAVE_NO_SNMP
 	snmp_loop(W5500_p1);
