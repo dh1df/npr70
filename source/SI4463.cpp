@@ -72,18 +72,18 @@ void SI4463_cs_active(SI4463_Chip* SI4463)
 {
 	SI4463->cs->write(0);
 #ifdef CS_DELAY
-	CS_DELAY()
+	CS_DELAY();
 #endif	
 }
 
 void SI4463_cs_inactive(SI4463_Chip* SI4463)
 {
 #ifdef CS_DELAY
-	CS_DELAY()
+	CS_DELAY();
 #endif	
 	SI4463->cs->write(1);
 #ifdef CS_DELAY
-	CS_DELAY()
+	CS_DELAY();
 #endif
 }
 
