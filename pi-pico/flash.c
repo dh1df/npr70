@@ -54,10 +54,23 @@ static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int
 int cmd_flash(struct context *ctx)
 {
 	int total_size,idx=0,fd=pico_open(ctx->s1,LFS_O_RDONLY);
-	lfs_off_t pos=0;
+	char *name="npr70pi.bin\n";
+	int name_len=strlen(name);
+	char buffer[46];
+	int buffer_size=sizeof(buffer);
+	lfs_off_t pos=0,offset;
 	if (fd < 0)
 		return fd;
 	total_size=pico_size(fd);
+	offset=total_size-buffer_size;
+	if ( total_size < buffer_size || 
+             pico_lseek(fd, offset, SEEK_SET) != offset ||
+             pico_read(fd, buffer, buffer_size) != buffer_size ||
+	     strncmp(buffer+buffer_size-name_len, name, name_len)) { /* TODO: Check MD5 */
+		pico_close(fd);
+		return LFS_ERR_CORRUPT;
+	}
+
         while (pos < total_size) {
                 lfs_block_t block;
                 lfs_off_t offset;
