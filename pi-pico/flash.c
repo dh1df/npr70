@@ -51,9 +51,9 @@ static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int
 	for(;;);
 }
 
-int cmd_flash(struct context *ctx)
+static int cmd_flash_do(struct context *ctx, char *filename)
 {
-	int total_size,idx=0,fd=pico_open(ctx->s1,LFS_O_RDONLY);
+	int total_size,idx=0,fd=pico_open(filename,LFS_O_RDONLY);
 	char *name="npr70pi.bin\n";
 	int name_len=strlen(name);
 	char buffer[46];
@@ -90,4 +90,21 @@ int cmd_flash(struct context *ctx)
 	watchdog_reboot(0, SRAM_END, WATCHDOG_TIMEOUT);
 	flash(map, idx, 0, (total_size+pico_cfg.block_size-1)/pico_cfg.block_size, pico_cfg.block_size);
 	return 3;
+}
+
+int cmd_flash(struct context *ctx)
+{
+	char *filename=ctx->s1;
+	char *prefix="http://";
+	if (!strncmp(filename,prefix,strlen(prefix))) {
+		int ret=cmd_wget(ctx);
+		if (ret != 3)
+			return ret;
+		if (ctx->interrupt)
+			return ret;
+	}
+	filename=strrchr(filename,'/');
+	if (!filename)
+		return LFS_ERR_INVAL;
+	return cmd_flash_do(ctx, filename+1);
 }
