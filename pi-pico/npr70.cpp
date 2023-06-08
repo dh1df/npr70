@@ -78,7 +78,7 @@ int main()
 	CS4=1;
 
 	wait_ms(200);
-	debug("\r\n\r\nNPR FW %s\r\n", FW_VERSION);
+	debug("\r\n\r\nNPR PI FW %s\r\n", FW_VERSION);
 
 	littlefs_init();
 	NFPR_config_read(&Random_pin);
