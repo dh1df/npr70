@@ -71,14 +71,20 @@ static unsigned char TX_test_inprogress = 0;
 void SI4463_cs_active(SI4463_Chip* SI4463)
 {
 	SI4463->cs->write(0);
-	wait_ns(1);
+#ifdef CS_DELAY
+	CS_DELAY();
+#endif	
 }
 
 void SI4463_cs_inactive(SI4463_Chip* SI4463)
 {
-	wait_ns(1);
+#ifdef CS_DELAY
+	CS_DELAY();
+#endif	
 	SI4463->cs->write(1);
-	wait_ns(1);
+#ifdef CS_DELAY
+	CS_DELAY();
+#endif
 }
 
 #define cs csx

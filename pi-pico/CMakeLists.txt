@@ -42,6 +42,7 @@ add_subdirectory(littlefs-lib)
 
 add_executable(${PROJECT_NAME} ${NPR70_PI_SOURCES} ${NPR70_COMMON_SOURCES} ${ENC28J60_SOURCES} ${TINYUSB_LIBNETWORKING_SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" FS_SIZE=1048576)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
 #target_link_options(${PROJECT_NAME} PRIVATE -Wl,--wrap=cyw43_cb_tcpip_init)
 
 pico_enable_stdio_usb(${PROJECT_NAME} 0)

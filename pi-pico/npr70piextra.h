@@ -6,6 +6,7 @@
 #define HAVE_NO_W5500 1
 #define HAVE_NO_SNMP 1
 #define HAVE_JSON_CONFIG 1
+#define CS_DELAY() wait_ns(1)
 
 #define CMD_FS\
         {"ls",cmd_ls},\
