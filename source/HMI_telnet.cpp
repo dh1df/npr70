@@ -433,6 +433,7 @@ void HMI_display_config(void) {
 	unsigned char IP_loc[8];
 
 	HMI_printf("CONFIG:\r\n  callsign: '%s'\r\n  is_master: %s\r\n  MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n", CONF_radio_my_callsign+2, HMI_yes_no[is_TDMA_master],CONF_modem_MAC[0],CONF_modem_MAC[1],CONF_modem_MAC[2],CONF_modem_MAC[3],CONF_modem_MAC[4],CONF_modem_MAC[5]);
+	HMI_printf("  Eth_mode: %i\r\n", CONF_Eth_mode);
 	HMI_printf("  ext_SRAM: %s\r\n", HMI_yes_no[is_SRAM_ext]);
 	HMI_printf("  frequency: %.3fMHz\r\n  freq_shift: %.3fMHz\r\n  RF_power: %i\r\n  modulation: %i\r\n", ((float)CONF_frequency_HD/1000)+FREQ_RANGE_MIN, (float)CONF_freq_shift/1000, CONF_radio_PA_PWR, CONF_radio_modulation); 
 
@@ -721,6 +722,15 @@ void HMI_set_command(char* loc_param1, char* loc_param2) {
 				HMI_printf("OK\r\nready> ");
 			} else {
 				HMI_printf("error : max RF_power value 127\r\nready> ");
+			}
+		}
+		else if (strcmp(loc_param1, "Eth_mode") == 0) {
+			temp_uint = sscanf (loc_param2, "%i", &temp); 
+			if ( (temp_uint == 1) && (temp <= 7) ) {
+				CONF_Eth_mode = temp;
+				HMI_printf("OK\r\nready> ");
+			} else {
+				HMI_printf("error : max Eth_mode value 7\r\nready> ");
 			}
 		}
 		else if (strcmp(loc_param1, "modulation") == 0) {

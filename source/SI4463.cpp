@@ -40,6 +40,7 @@
 	#include "SI4463_config_11.h"
 	//#include "radio_config_Si4463_11.h"
 	#include "SI4463_config_21.h"
+	//#include "SI4463_config_21_GMSK.h"
 	//#include "radio_config_Si4463_21.h"
 	#include "SI4463_config_12.h"
 	#include "SI4463_config_22.h"

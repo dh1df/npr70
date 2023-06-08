@@ -68,6 +68,8 @@ void FDDdown_RX_pckt_treat(unsigned char* in_data, int size) {
 	//debug_counter++;
 }
 
+static int RX_FRAME_count_debug = 0;
+
 void radio_RX_FIFO_dequeue (W5500_chip* W5500) {
 	static unsigned char ethernet_buffer[radio_addr_table_size][1600]; 
 	static int size_received[radio_addr_table_size]; 
@@ -97,10 +99,17 @@ void radio_RX_FIFO_dequeue (W5500_chip* W5500) {
 	unsigned char TDMA_byte; 
 	unsigned char is_downlink;
 	unsigned long int timer_snapshot;
+	int i;
 	
 	if (RX_FIFO_last_received > RX_FIFO_RD_point) { //something new in RX FIFO
 		timer_snapshot = GLOBAL_timer.read_us();
 		//printf ("something in RX FIFO\r\n");
+		//RX_FRAME_count_debug++;
+		//printf("%i RX:", RX_FRAME_count_debug);
+		//for (i=4; i<10; i++){
+		//	printf("%02X.",RX_FIFO_data[(RX_FIFO_RD_point+i) & RX_FIFO_mask]);
+		//}
+		//printf("\r\n");
 		frame_timer = RX_FIFO_data[RX_FIFO_RD_point & RX_FIFO_mask];
 		RX_FIFO_RD_point++;
 		frame_timer = (0x100 * RX_FIFO_data[RX_FIFO_RD_point & RX_FIFO_mask]) + frame_timer;

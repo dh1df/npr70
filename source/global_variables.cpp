@@ -109,6 +109,7 @@ LAN_conf_T LAN_conf_saved;
 LAN_conf_T LAN_conf_applied; 
 
 unsigned char CONF_modem_MAC[6]; 
+unsigned char CONF_Eth_mode = 0x07;
 
 char CONF_radio_my_callsign[16];
 char CONF_radio_master_callsign[16];

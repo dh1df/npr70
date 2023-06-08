@@ -212,7 +212,12 @@ void apply_config_from_raw_string(unsigned char* data_r) {
 	CONF_transmission_method = data_r[68];
 	CONF_master_FDD = data_r[69];
 	CONF_master_down_IP = IP_char2int(data_r+70);
-	
+	if ((data_r[74] >= 0xF0) && (data_r[74] <= 0xF7)){
+		CONF_Eth_mode = data_r[74] - 0xF0;	
+	}
+	else {
+		CONF_Eth_mode = 0x07;	
+	}
 	if (LAN_conf_applied.DHCP_server_active == 1) {
 		LAN_conf_applied.DHCP_range_start = CONF_radio_IP_start;
 		LAN_conf_applied.DHCP_range_size = CONF_radio_IP_size_requested;
@@ -264,4 +269,5 @@ void write_config_to_raw_string (unsigned char* data_r) {
 	data_r[68] = CONF_transmission_method;
 	data_r[69] = CONF_master_FDD;
 	IP_int2char(CONF_master_down_IP, data_r+70);
+	data_r[74] = CONF_Eth_mode + 0xF0;
 }

@@ -487,7 +487,7 @@ void DHCP_ARP_print_entries(void) {
 			HMI_printf("age:%isec\r\n", (GLOBAL_timer.read_us()-DHCP_ARP_date[i])/1000000);
 		}
 	}
-	HMI_printf("\r\nready> ")
+	HMI_printf("\r\nready> ");
 }
 
 // *** ARP proxy and ARP resolver ***

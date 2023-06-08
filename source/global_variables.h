@@ -21,7 +21,7 @@
 #include "W5500.h"
 
 //#define EXT_SRAM_USAGE
-//#define FREQ_BAND_2M
+#define FREQ_BAND_2M
 //#define NPR_L476
 
 #include "ext_SRAM2.h"
@@ -44,7 +44,7 @@ extern ext_SRAM_chip* SPI_SRAM_p;
 	#define SI4463_NOUTDIV 8
 #endif
 
-#define FW_VERSION "2020_02_23"
+#define FW_VERSION "2020_06_29"
 
 extern SI4463_Chip* G_SI4463;
 
@@ -162,6 +162,7 @@ extern LAN_conf_T LAN_conf_saved;
 extern LAN_conf_T LAN_conf_applied; 
 
 extern unsigned char CONF_modem_MAC[6]; 
+extern unsigned char CONF_Eth_mode;
 
 #define radio_addr_table_size 7
 extern char CONF_radio_my_callsign[16];

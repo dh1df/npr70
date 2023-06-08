@@ -301,9 +301,9 @@ LINKER_SCRIPT ?= .././mbed-os/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L432
 ###############################################################################
 # Tools and Flags
 
-AS      = 'arm-none-eabi-gcc' '-x' 'assembler-with-cpp' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-O0' '-g3' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
-CC      = 'arm-none-eabi-gcc' '-std=gnu99' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-O0' '-g3' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
-CPP     = 'arm-none-eabi-g++' '-std=gnu++98' '-fno-rtti' '-Wvla' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-O0' '-g3' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
+AS      = 'arm-none-eabi-gcc' '-x' 'assembler-with-cpp' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-Os' '-g1' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
+CC      = 'arm-none-eabi-gcc' '-std=gnu99' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-Os' '-g1' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
+CPP     = 'arm-none-eabi-g++' '-std=gnu++98' '-fno-rtti' '-Wvla' '-c' '-Wall' '-Wextra' '-Wno-unused-parameter' '-Wno-missing-field-initializers' '-fmessage-length=0' '-fno-exceptions' '-fno-builtin' '-ffunction-sections' '-fdata-sections' '-funsigned-char' '-MMD' '-fno-delete-null-pointer-checks' '-fomit-frame-pointer' '-Os' '-g1' '-DMBED_DEBUG' '-DMBED_TRAP_ERRORS_ENABLED=1' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
 LD      = 'arm-none-eabi-gcc'
 ELF2BIN = 'arm-none-eabi-objcopy'
 PREPROC = 'arm-none-eabi-cpp' '-E' '-P' '-Wl,--gc-sections' '-Wl,--wrap,main' '-Wl,--wrap,_malloc_r' '-Wl,--wrap,_free_r' '-Wl,--wrap,_realloc_r' '-Wl,--wrap,_memalign_r' '-Wl,--wrap,_calloc_r' '-Wl,--wrap,exit' '-Wl,--wrap,atexit' '-Wl,-n' '-mcpu=cortex-m4' '-mthumb' '-mfpu=fpv4-sp-d16' '-mfloat-abi=softfp'
@@ -329,7 +329,6 @@ C_FLAGS += -DTARGET_LIKE_CORTEX_M4
 C_FLAGS += -DDEVICE_ANALOGOUT=1
 C_FLAGS += -DTARGET_M4
 C_FLAGS += -DTARGET_UVISOR_UNSUPPORTED
-C_FLAGS += -DDEVICE_ANALOGIN=1
 C_FLAGS += -DTARGET_STM32L4
 C_FLAGS += -DDEVICE_SPI_ASYNCH=1
 C_FLAGS += -DDEVICE_PWMOUT=1
@@ -345,6 +344,7 @@ C_FLAGS += -DDEVICE_PORTIN=1
 C_FLAGS += -DTARGET_STM
 C_FLAGS += -DTARGET_STM32L432KC
 C_FLAGS += -DDEVICE_SERIAL_FC=1
+C_FLAGS += -DMBED_BUILD_TIMESTAMP=1593423187.67
 C_FLAGS += -DDEVICE_TRNG=1
 C_FLAGS += -DTARGET_LIKE_MBED
 C_FLAGS += -D__MBED_CMSIS_RTOS_CM
@@ -353,7 +353,7 @@ C_FLAGS += -DTOOLCHAIN_GCC_ARM
 C_FLAGS += -DDEVICE_SPI=1
 C_FLAGS += -DDEVICE_INTERRUPTIN=1
 C_FLAGS += -DDEVICE_SPISLAVE=1
-C_FLAGS += -DMBED_BUILD_TIMESTAMP=1582451474.8
+C_FLAGS += -DDEVICE_ANALOGIN=1
 C_FLAGS += -DDEVICE_SERIAL=1
 C_FLAGS += -DDEVICE_FLASH=1
 C_FLAGS += -DTARGET_NUCLEO_L432KC
@@ -383,7 +383,6 @@ CXX_FLAGS += -DTARGET_LIKE_CORTEX_M4
 CXX_FLAGS += -DDEVICE_ANALOGOUT=1
 CXX_FLAGS += -DTARGET_M4
 CXX_FLAGS += -DTARGET_UVISOR_UNSUPPORTED
-CXX_FLAGS += -DDEVICE_ANALOGIN=1
 CXX_FLAGS += -DTARGET_STM32L4
 CXX_FLAGS += -DDEVICE_SPI_ASYNCH=1
 CXX_FLAGS += -DDEVICE_PWMOUT=1
@@ -399,6 +398,7 @@ CXX_FLAGS += -DDEVICE_PORTIN=1
 CXX_FLAGS += -DTARGET_STM
 CXX_FLAGS += -DTARGET_STM32L432KC
 CXX_FLAGS += -DDEVICE_SERIAL_FC=1
+CXX_FLAGS += -DMBED_BUILD_TIMESTAMP=1593423187.67
 CXX_FLAGS += -DDEVICE_TRNG=1
 CXX_FLAGS += -DTARGET_LIKE_MBED
 CXX_FLAGS += -D__MBED_CMSIS_RTOS_CM
@@ -407,7 +407,7 @@ CXX_FLAGS += -DTOOLCHAIN_GCC_ARM
 CXX_FLAGS += -DDEVICE_SPI=1
 CXX_FLAGS += -DDEVICE_INTERRUPTIN=1
 CXX_FLAGS += -DDEVICE_SPISLAVE=1
-CXX_FLAGS += -DMBED_BUILD_TIMESTAMP=1582451474.8
+CXX_FLAGS += -DDEVICE_ANALOGIN=1
 CXX_FLAGS += -DDEVICE_SERIAL=1
 CXX_FLAGS += -DDEVICE_FLASH=1
 CXX_FLAGS += -DTARGET_NUCLEO_L432KC
