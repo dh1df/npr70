@@ -7,6 +7,9 @@
 #include "lwip/icmp.h"
 #include "lwip/inet_chksum.h"
 
+
+static void cmd_ping_send(struct ping_context *pctx);
+
 static int cmd_ping_size=32;
 static int cmd_ping_id=0xbeef;
 
@@ -28,10 +31,11 @@ static void cmd_ping_exit(struct ping_context *pctx, int ret)
 }
 
 
-static void cmd_ping_found(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
+static void cmd_ping_found(const char *name, const ip_addr_t *ipaddr, void *arg)
 {
-	struct ping_context *pctx=(struct ping_context *)callback_arg;
-	debug("cmd_ping_found\r\n");
+	struct ping_context *pctx=(struct ping_context *)arg;
+	HMI_cprintf(pctx->ctx,"Got %s\r\n", ipaddr_ntoa(ipaddr));
+	cmd_ping_send(pctx);
 }
 
 static u8_t cmd_ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const ip_addr_t *addr)
@@ -93,10 +97,15 @@ int cmd_ping(struct context *ctx)
 		raw_bind(pctx->pcb, IP_ADDR_ANY);
 		if (ipaddr_aton(ctx->s1, &pctx->addr))
 			cmd_ping_send(pctx);
-		else
+		else {
 			err=dns_gethostbyname(ctx->s1, &pctx->addr, cmd_ping_found, pctx);
+			if (err == ERR_INPROGRESS) {
+				HMI_cprintf(ctx, "resolving\r\n");
+				err = ERR_OK;
+			}
+		}
 		if (err) {
-			cmd_ping_exit(pctx,-(err+30));
+			cmd_ping_exit(pctx,LWIP_ERR(err));
 		} else
 			pctx->done=5;
 	}
