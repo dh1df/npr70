@@ -63,70 +63,6 @@ void debug(const char *str, ...)
 	va_end(ap);
 }
 
-
-void tcp_setup(void)
-{
-	err_t err;
-	struct W5500_channel *c;
-	gpio_put(LED_PIN, 1);
-
-	c=W5500_chan(TELNET_SOCKET);
-	err=c?ERR_OK:ERR_ARG;
-	if (err == ERR_OK) {
-		c->tcp=tcp_new();
-		if (!c->tcp)
-			err=ERR_MEM;
-	}
-	if (err == ERR_OK)
-		err = tcp_bind(c->tcp, IP_ANY_TYPE, 23);
-	if (err == ERR_OK) {
-		c->tcp=tcp_listen(c->tcp);
-		if (!c->tcp)
-			err=ERR_MEM;
-	}
-	if (err == ERR_OK) {
-		tcp_arg(c->tcp, c);
-		tcp_accept(c->tcp, W5500_accept);
-	}
-
-	debug("telnet %d\r\n",err);
-	c=W5500_chan(DHCP_SOCKET);
-	err=c?ERR_OK:ERR_ARG;
-	if (err == ERR_OK) {
-		c->udp=udp_new();
-		if (!c->udp)
-			err=ERR_MEM;
-	}
-	if (err == ERR_OK)
-		err = udp_bind(c->udp, IP_ANY_TYPE, 67);
-	if (err == ERR_OK) {
-		udp_recv(c->udp, W5500_udp_recv, c);
-	}
-	
-}
-
-int
-init_wifi(void)
-{
-	debug("cyw43_arch_init()\r\n");
-	debug("cyw43_arch_enable_sta_mode()\r\n");
-	cyw43_arch_enable_sta_mode();
-	// this seems to be the best be can do using the predefined `cyw43_pm_value` macro:
-	// cyw43_wifi_pm(&cyw43_state, CYW43_PERFORMANCE_PM);
-	// however it doesn't use the `CYW43_NO_POWERSAVE_MODE` value, so we do this instead:
-	cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
-
-	if (cyw43_arch_wifi_connect_async(CONF_wifi_id, CONF_wifi_passphrase, CYW43_AUTH_WPA2_AES_PSK)) {
-		debug("failed wifi connect\r\n");
-	} else {
-		debug("wifi connecting\r\n");
-	}
-	return 0;
-}
-
-extern "C" void enchw_init(void);
-extern "C" void test(void);
-
 int
 cmd_test(struct context *ctx)
 {
@@ -135,7 +71,6 @@ cmd_test(struct context *ctx)
 
 int main()
 {
-	int i;
 	int wifi=1;
 	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
@@ -149,28 +84,7 @@ int main()
 	NFPR_config_read(&Random_pin);
 
 	init1();
-
-	if (cyw43_arch_init()) {
-		wifi=0;
-		printf("failed to initialise\n");
-	} else {
-		uint32_t pm=0;
-		int err=cyw43_wifi_get_pm(&cyw43_state,&pm);
-		printf("wifi %d %d\r\n",pm,err);
-		if (err)
-			wifi=0;
-	}
-	if (wifi) 
-		init_wifi();
-	tud_setup();
-	enchw_init();
 	init2();
-
-	gpio_init(LED_PIN);
-	gpio_set_dir(LED_PIN, GPIO_OUT);
-
-	tcp_setup();
-	gpio_put(LED_PIN, 1);
 	HMI_prompt(NULL);
 
 	while (true) {

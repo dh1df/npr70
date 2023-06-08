@@ -1,8 +1,10 @@
 #include "pico/stdlib.h"
 #include "pico/bootrom.h"
-#include "W5500_lwip.h"
+#include "pico/cyw43_arch.h"
 #include "netif/etharp.h"
 #include "netif/bridgeif.h"
+#include "W5500_lwip.h"
+#include "tusb_lwip_glue.h"
 #include "common.h"
 #include "main.h"
 #include "../source/HMI_telnet.h"
@@ -10,6 +12,9 @@
 
 static void bridge_setup(void);
 static void ip_setup(void);
+static void tcp_setup(void);
+static int wifi_setup(void);
+
 #define LED_PIN     25
 #define NUM_BRIDGE_PORTS 5
 
@@ -363,9 +368,26 @@ W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data
 void
 W5500_initial_configure(W5500_chip* SPI_p_loc)
 {
+	int wifi=1;
 	Int_W5500.setstate(1);
+	if (cyw43_arch_init()) {
+		wifi=0;
+		printf("failed to initialise\n");
+	} else {
+		uint32_t pm=0;
+		int err=cyw43_wifi_get_pm(&cyw43_state,&pm);
+		printf("wifi %d %d\r\n",pm,err);
+		if (err)
+			wifi=0;
+	}
+	if (wifi)
+		wifi_setup();
+        tud_setup();
+        enchw_init();
+
 	bridge_setup();
 	ip_setup();
+	tcp_setup();
 }
 
 void
@@ -533,6 +555,15 @@ static err_t radio_netif_init_cb(struct netif *netif)
 	return ERR_OK;
 }
 
+static int bridge_forward(struct pbuf *p, struct netif *src, struct netif *dst)
+{
+	if (src == dst)
+		return 0;
+	if (src == &netif_bridge && dst == &netif_radio)
+		return 0;
+	return 1;
+}
+
 static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 {
 	int i;
@@ -541,7 +572,7 @@ static err_t bridge_input_fn(struct pbuf *p, struct netif *netif)
 	for (i = 0 ; i < NUM_BRIDGE_PORTS; i++) {
 		struct netif *dest=bridge_port[i];
 		/* avoid loopback and feedback from modem ip to radio */
-		if (dest && dest != netif && (netif != &netif_bridge || dest != &netif_radio)) {
+		if (dest && bridge_forward(p, netif, dest)) {
 			if (verbose)
 				printf("bridge linkoutput %c%c %p\r\n",bridge_port[i]->name[0],bridge_port[i]->name[1], p);
 			bridge_port[i]->linkoutput(bridge_port[i], p);
@@ -589,7 +620,7 @@ static err_t bridge_init_cb(struct netif *netif)
 	return ERR_OK;
 }
 
-void
+static void
 ip_setup(void)
 {
 	ip4_addr_t addr;
@@ -608,7 +639,66 @@ ip_setup(void)
 #endif
 }
 
-void
+static void
+tcp_setup(void)
+{
+	err_t err;
+	struct W5500_channel *c;
+
+	c=W5500_chan(TELNET_SOCKET);
+	err=c?ERR_OK:ERR_ARG;
+	if (err == ERR_OK) {
+		c->tcp=tcp_new();
+		if (!c->tcp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK)
+		err = tcp_bind(c->tcp, IP_ANY_TYPE, 23);
+	if (err == ERR_OK) {
+		c->tcp=tcp_listen(c->tcp);
+		if (!c->tcp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK) {
+		tcp_arg(c->tcp, c);
+		tcp_accept(c->tcp, W5500_accept);
+	}
+
+	c=W5500_chan(DHCP_SOCKET);
+	err=c?ERR_OK:ERR_ARG;
+	if (err == ERR_OK) {
+		c->udp=udp_new();
+		if (!c->udp)
+			err=ERR_MEM;
+	}
+	if (err == ERR_OK)
+		err = udp_bind(c->udp, IP_ANY_TYPE, 67);
+	if (err == ERR_OK) {
+		udp_recv(c->udp, W5500_udp_recv, c);
+	}
+
+}
+
+static int
+wifi_setup(void)
+{
+        debug("cyw43_arch_init()\r\n");
+        debug("cyw43_arch_enable_sta_mode()\r\n");
+        cyw43_arch_enable_sta_mode();
+        // this seems to be the best be can do using the predefined `cyw43_pm_value` macro:
+        // cyw43_wifi_pm(&cyw43_state, CYW43_PERFORMANCE_PM);
+        // however it doesn't use the `CYW43_NO_POWERSAVE_MODE` value, so we do this instead:
+        cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_NO_POWERSAVE_MODE, 20, 1, 1, 1));
+
+        if (cyw43_arch_wifi_connect_async(CONF_wifi_id, CONF_wifi_passphrase, CYW43_AUTH_WPA2_AES_PSK)) {
+                debug("failed wifi connect\r\n");
+        } else {
+                debug("wifi connecting\r\n");
+        }
+        return 0;
+}
+
+static void
 bridge_setup(void)
 {
 	err_t err;
@@ -617,14 +707,4 @@ bridge_setup(void)
 	netif=netif_add_noaddr(&netif_bridge, NULL, bridge_init_cb, ethernet_input);
 	bridge_add_if(&netif_radio);
 	bridge_add_if(&netif_eth);
-#if 0
-	debug("radio %p\r\n",netif);
-	netif=netif_add(&bridge, &ipaddr, &netmask, &gateway, &mybridge_initdata, bridgeif_init, ethernet_input);
-	debug("bridge %p\r\n",netif);
-	err=bridgeif_add_port(&bridge, &radio);
-	debug("bridge add radio %d\r\n",err);
-	err=bridgeif_add_port(&bridge, &netif_data);
-	debug("bridge add usb %d\r\n",err);
-	bridge.flags |= NETIF_FLAG_UP;
-#endif
 }
