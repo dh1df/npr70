@@ -345,7 +345,7 @@ void
 W5500_re_configure(void)
 {
 	ip4_addr_t addr;
-	debug("W5500_re_configure\r\n");
+	ip_setup();
 }
 
 int
