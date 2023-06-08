@@ -35,9 +35,13 @@ void wait_us(us_timestamp_t us)
 
 void wait_ns(ns_timestamp_t ns)
 {
+#if 0
 	// cycles = ns * clk_sys_hz / 1,000,000,000
 	uint32_t cycles = ns * (clock_get_hz(clk_sys) >> 16u) / (1000000000u >> 16u);
 	busy_wait_at_least_cycles(cycles);
+#else
+	busy_wait_at_least_cycles(1);
+#endif
 }
 
 void call_bootloader(void)
