@@ -22,6 +22,7 @@
 #include "common.h"
 #include "main.h"
 
+#define WATCHDOG_TIMEOUT 0x7fffff
 
 err_t error;
 
@@ -72,7 +73,7 @@ cmd_test(struct context *ctx)
 int main()
 {
 	int wifi=1;
-	stdio_uart_init_full(uart_default, 460800, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
+	stdio_uart_init_full(uart_default, 921600, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
 	CS4=1;
@@ -87,12 +88,14 @@ int main()
 	init2();
 	HMI_prompt(NULL);
 
+	watchdog_enable(WATCHDOG_TIMEOUT, true);
 	while (true) {
 		loop();
 		tud_task();
 		service_traffic();
 		cyw43_arch_poll();
 		enchw_poll();
+		watchdog_update();
 	}
 
 	return 0;
