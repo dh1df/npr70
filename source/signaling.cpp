@@ -322,7 +322,7 @@ void signaling_connect_ACK_process(unsigned char* raw_data)
 	if (local_IP_subnet != LAN_conf_applied.LAN_subnet_mask) {need_LAN_reset = 1;}
 	LAN_conf_applied.LAN_subnet_mask = local_IP_subnet;
 	// Default route active
-	local_default_route_activ = raw_data[49];
+	local_default_route_activ = raw_data[49] && LAN_conf_saved.LAN_def_route_activ;
 	if (local_default_route_activ != LAN_conf_applied.LAN_def_route_activ) {need_LAN_reset = 1;}
 	LAN_conf_applied.LAN_def_route_activ = local_default_route_activ;
 	// Default route value
@@ -330,7 +330,7 @@ void signaling_connect_ACK_process(unsigned char* raw_data)
 	if (local_default_route != LAN_conf_applied.LAN_def_route) {need_LAN_reset = 1;}
 	LAN_conf_applied.LAN_def_route = local_default_route;
 	// DNS active
-	local_DNS_activ = raw_data[54];
+	local_DNS_activ = raw_data[54] && LAN_conf_saved.LAN_DNS_activ;
 	if (local_DNS_activ != LAN_conf_applied.LAN_DNS_activ) {need_LAN_reset = 1;}
 	LAN_conf_applied.LAN_DNS_activ = local_DNS_activ;
 	// DNS value
