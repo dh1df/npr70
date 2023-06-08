@@ -345,7 +345,7 @@ void DHCP_server(LAN_conf_T* LAN_config, W5500_chip* W5500 ) {
 			// decision
 			loc_status = lookfor_free_LAN_IP (LAN_config, client_MAC, requested_IP, proposed_IP, message_type_client);
 			
-			if (message_type_client == 1) { // discover -> offer
+			if (message_type_client == 1 & (loc_status != 0 ) ) { // discover -> offer
 				
 				for (i=0; i<4; i++) { //proposed IP
 					DHCP_answer[i+16] = proposed_IP[i];
