@@ -20,7 +20,7 @@ static struct map {
 
 volatile static int step;
 static unsigned char flash_buffer[4096];
-#define WATCHDOG_TIMEOUT 2000
+#define WATCHDOG_TIMEOUT 4000
 
 static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int dst, int blocks, int block_size)
 {
