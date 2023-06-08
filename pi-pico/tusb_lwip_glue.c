@@ -30,7 +30,7 @@
 #include "pico/unique_id.h"
 
 /* lwip context */
-struct netif netif_data;
+struct netif netif_usb;
 
 /* shared between tud_network_recv_cb() and service_traffic() */
 static struct pbuf *received_frame;
@@ -87,7 +87,7 @@ static err_t netif_init_cb(struct netif *netif)
 
 void tud_setup(void)
 {
-    struct netif *netif = &netif_data;
+    struct netif *netif = &netif_usb;
     
     /* Fixup MAC address based on flash serial */
     //pico_unique_board_id_t id;
@@ -169,25 +169,10 @@ void service_traffic(void)
     /* handle any packet received by tud_network_recv_cb() */
     if (received_frame)
     {
-      netif_data.input(received_frame, &netif_data);
+      netif_usb.input(received_frame, &netif_usb);
       received_frame = NULL;
       tud_network_recv_renew();
     }
     
     sys_check_timeouts();
 }
-
-void dhcpd_init()
-{
-#if 0
-    while (dhserv_init(&dhcp_config) != ERR_OK);
-#endif
-}
-
-void wait_for_netif_is_up()
-{
-#if 0
-    while (!netif_is_up(&netif_data));    
-#endif
-}
-

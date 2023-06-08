@@ -671,8 +671,10 @@ tcp_setup(void)
 		if (!c->udp)
 			err=ERR_MEM;
 	}
-	if (err == ERR_OK)
+	if (err == ERR_OK) {
+		udp_bind_netif(c->udp, &netif_bridge);
 		err = udp_bind(c->udp, IP_ANY_TYPE, 67);
+	}
 	if (err == ERR_OK) {
 		udp_recv(c->udp, W5500_udp_recv, c);
 	}
@@ -707,4 +709,5 @@ bridge_setup(void)
 	netif=netif_add_noaddr(&netif_bridge, NULL, bridge_init_cb, ethernet_input);
 	bridge_add_if(&netif_radio);
 	bridge_add_if(&netif_eth);
+	bridge_add_if(&netif_usb);
 }
