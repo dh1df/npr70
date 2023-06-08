@@ -12,6 +12,8 @@ extern unsigned char int_sram[INT_SRAM_SIZE];
 
 #define SERIAL_TX 0
 #define SERIAL_RX 0
+#define LWIP_ERR(x) (x-30)
+#define LFS_ERR(x) (x)
 class Serial {
 public:
 	Serial(int a, int b) {
