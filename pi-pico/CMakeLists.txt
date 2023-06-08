@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 set(PICO_BOARD pico_w)
 include(pico-sdk/pico_sdk_init.cmake)
-project(npr70)
+project(npr70pi)
 pico_sdk_init()
 
 set(WIFI_SSID "${WIFI_SSID}" CACHE INTERNAL "WiFi SSID for examples")
@@ -49,6 +49,7 @@ pico_enable_stdio_uart(${PROJECT_NAME} 1)
 target_include_directories(${PROJECT_NAME} PRIVATE . compat ${ENC28J60_DIR}/include ${ENC28J60_DIR}/lwip ${TUSB_INCLUDE} ${LWIP_INCLUDE} ../source/SI4463)
 target_link_libraries(${PROJECT_NAME} pico_stdlib hardware_spi hardware_adc pico_unique_id pico_lwip pico_lwip_http pico_cyw43_arch_lwip_poll tinyusb_device littlefs-lib)
 pico_add_extra_outputs(${PROJECT_NAME})
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cp ${PROJECT_NAME}.bin ${PROJECT_NAME}.sbin COMMAND md5sum ${PROJECT_NAME}.bin >> ${PROJECT_NAME}.sbin)
 
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE SCENARIO=1)
