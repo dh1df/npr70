@@ -11,7 +11,7 @@
 #include "../source/Eth_IPv4.h"
 
 static void bridge_setup(void);
-static void ip_setup(void);
+static void ip_setup(int reconf);
 static void tcp_setup(void);
 static int wifi_setup(void);
 
@@ -26,6 +26,7 @@ static struct netif *bridge_port[NUM_BRIDGE_PORTS];
 static err_t radio_output_raw_fn(struct pbuf *p);
 
 static int verbose;
+static int bridge_radio;
 
 
 static void
@@ -345,7 +346,7 @@ void
 W5500_re_configure(void)
 {
 	ip4_addr_t addr;
-	ip_setup();
+	ip_setup(1);
 }
 
 int
@@ -387,7 +388,7 @@ W5500_initial_configure(W5500_chip* SPI_p_loc)
         enchw_init();
 
 	bridge_setup();
-	ip_setup();
+	ip_setup(0);
 	tcp_setup();
 }
 
@@ -400,10 +401,9 @@ int
 cmd_display_net(struct context *ctx)
 {
 	struct netif *netif=netif_list;
-	u32_t ip_addr;
 	while (netif) {
 		unsigned char *h=netif->hwaddr;
-		HMI_cprintf(ctx,"%p %s %d ",netif,netif->name,netif->num);
+		HMI_cprintf(ctx,"%p %s%s %d ",netif,netif == netif_default ? "*":"",netif->name,netif->num);
 		if (netif->flags & NETIF_FLAG_UP) {
 			HMI_printf("UP ");
 		}
@@ -416,10 +416,9 @@ cmd_display_net(struct context *ctx)
 		if (netif->flags & NETIF_FLAG_ETHERNET) {
 			HMI_printf("ETHERNET ");
 		}
-		ip_addr=netif->ip_addr.addr;
-		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
-		ip_addr=netif->netmask.addr;
-		HMI_cprintf(ctx,"%lu.%lu.%lu.%lu ", ip_addr & 0xFF, (ip_addr >> 8) & 0xFF, (ip_addr >> 16) & 0xFF, ip_addr >> 24);
+		HMI_cprintf(ctx,"%s ", ipaddr_ntoa(&netif->ip_addr));
+		HMI_cprintf(ctx,"%s ", ipaddr_ntoa(&netif->netmask));
+		HMI_cprintf(ctx,"%s ", ipaddr_ntoa(&netif->gw));
 		HMI_cprintf(ctx,"%d %02x:%02x:%02x:%02x:%02x:%02x\r\n", netif->hwaddr_len, h[0], h[1], h[2], h[3], h[4], h[5]);
 		
 		netif=netif->next;
@@ -561,7 +560,7 @@ static int bridge_forward(struct pbuf *p, struct netif *src, struct netif *dst)
 	if (src == dst)
 		return 0;
 	if (src == &netif_bridge && dst == &netif_radio)
-		return 0;
+		return bridge_radio;
 	return 1;
 }
 
@@ -622,22 +621,20 @@ static err_t bridge_init_cb(struct netif *netif)
 }
 
 static void
-ip_setup(void)
+ip_setup(int reconf)
 {
-	ip4_addr_t addr;
+	ip4_addr_t ipaddr,netmask,gw;
 	struct netif *netif=&netif_bridge;
-	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &addr);
-	netif_set_ipaddr(netif, &addr);
-	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &addr);
-	netif_set_netmask(netif, &addr);
-#if 0
-	if (CONF_radio_IP_size_internal) {
-		IP_int2lwip(LAN_conf_applied.DHCP_range_start+LAN_conf_applied.DHCP_range_size+CONF_radio_IP_size_internal-1, &addr);
-		netif_set_ipaddr(&radio, &addr);
-		IP_int2lwip(0xffffffff, &addr);
-		netif_set_netmask(&radio, &addr);
+	debug("ip_setup %d\r\n",reconf);
+	if (CONF_radio_IP_size_internal && reconf) {
+		bridge_radio=1;
+	} else {
+		bridge_radio=0;
 	}
-#endif
+	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &ipaddr);
+	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &netmask);
+	IP_int2lwip(LAN_conf_applied.LAN_def_route, &gw);
+	netif_set_addr(netif, &ipaddr, &netmask, &gw);
 }
 
 static void

@@ -308,13 +308,16 @@ void signaling_connect_ACK_process(unsigned char* raw_data)
 	if (local_IP_start != LAN_conf_applied.DHCP_range_start) {need_LAN_reset = 1;}
 	LAN_conf_applied.DHCP_range_start = local_IP_start;
 	// IP Size
-	local_IP_size = IP_char2int(raw_data + 21);
+	local_IP_size = IP_char2int(raw_data + 21) - CONF_radio_IP_size_internal;
 	if (local_IP_size != LAN_conf_applied.DHCP_range_size) {need_LAN_reset = 1;}
 	LAN_conf_applied.DHCP_range_size = local_IP_size;
 	// Master Callsign
 	strcpy(CONF_radio_master_callsign, (char*)(raw_data + 25));
 	// Modem IP
-	local_modem_IP = IP_char2int(raw_data + 41);
+	if (CONF_radio_IP_size_internal) {
+		local_modem_IP = LAN_conf_applied.DHCP_range_start + LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal - 1;
+	} else
+		local_modem_IP = IP_char2int(raw_data + 41);
 	if (local_modem_IP != LAN_conf_applied.LAN_modem_IP) {need_LAN_reset = 1;}
 	LAN_conf_applied.LAN_modem_IP = local_modem_IP;
 	// IP subnet mask
@@ -461,7 +464,7 @@ void signaling_whois_TX(void) {
 		
 	} 
 	else if (my_client_radio_connexion_state == 2) { //Slave, only sends if really connected
-		signaling_single_whois_TX (my_radio_client_ID, CONF_radio_my_callsign, LAN_conf_applied.DHCP_range_start, LAN_conf_applied.DHCP_range_size, G_downlink_RSSI, G_downlink_BER, 0); // client's own entry
+		signaling_single_whois_TX (my_radio_client_ID, CONF_radio_my_callsign, LAN_conf_applied.DHCP_range_start, LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal, G_downlink_RSSI, G_downlink_BER, 0); // client's own entry
 		signaling_single_whois_TX (0x7F, CONF_radio_master_callsign, LAN_conf_applied.LAN_modem_IP, 0, 0, 0, 0); //MASTER entry
 	}
 }
