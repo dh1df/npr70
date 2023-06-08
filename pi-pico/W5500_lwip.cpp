@@ -267,7 +267,8 @@ W5500_write_TX_buffer(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* dat
 #else
 	if (sock_nb == 1) {
 		struct pbuf *p = pbuf_alloc(PBUF_RAW, size, PBUF_POOL);
-		debug("raw send %d %d\r\n",size,send_mac);
+		if (verbose)
+			debug("raw send %d %d\r\n",size,send_mac);
 		memcpy(p->payload, data, size);
 		radio_output_raw_fn(p);
 		pbuf_free(p);
