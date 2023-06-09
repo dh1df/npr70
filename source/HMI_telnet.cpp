@@ -36,7 +36,6 @@ static int echo_ON = 1;
 static unsigned int telnet_last_activity;
 static struct context ctx;
 
-static int HMI_cmd_bootloader(struct context *c);
 static int HMI_cmd_display(struct context *c);
 static int HMI_cmd_exit(struct context *c);
 static int HMI_cmd_radio(struct context *c);
@@ -74,7 +73,6 @@ static int HMI_cmd_set_telnet_routed(struct context *c);
 
 static int HMI_cmd_display_config(struct context *c);
 static int HMI_cmd_display_dhcp_arp(struct context *c);
-static int HMI_cmd_display_net(struct context *c);
 static int HMI_cmd_display_static(struct context *c);
 
 static struct command commands[]={
@@ -433,8 +431,6 @@ static int HMI_cmd_save(struct context *c)
 int HMI_exec(struct context *c)
 {
 	char *loc_command_str = c->cmd;
-	char *loc_param1_str = c->s1;
-	char *loc_param2_str = c->s2;
 	int command_understood=HMI_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]), 1);
 	c->ret = command_understood;
 	if (command_understood == 4 || command_understood == 5) { /* 4=Call again slow, 5=Call again fast */
@@ -952,7 +948,6 @@ static int HMI_cmd_set_radio_netw_id(struct context *c)
 static int HMI_cmd_set(struct context *c) {
 	char* loc_param1=c->s1;
 	char* loc_param2=c->s2;
-	int temp;
 	// unsigned char previous_freq_band;
 	if ((loc_param1) && (loc_param2)) {
 		int command_understood = HMI_command_parse(c, c->s1, set_commands, sizeof(set_commands)/sizeof(set_commands[0]), 0);
