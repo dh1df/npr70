@@ -781,6 +781,9 @@ void SI4463_RX_IT() {
 				//read remaining
 				SI4463_FIFO_RX_transfer(size_to_read);
 				SI4463_cs_inactive(G_SI4463);
+#ifdef TRACE_RX_RADIO
+				TRACE_TX_RADIO(GLOBAL_timer.read_us(), 1, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read-5) & RX_FIFO_mask, size_to_read+5);
+#endif
 				wait_us(1);
 				RX_size_remaining = RX_size_remaining - size_to_read; 
 			} 
@@ -800,6 +803,9 @@ void SI4463_RX_IT() {
 					G_SI4463->spi->transfer_2 (TX_small, 1, RX_small, 1);
 					SI4463_FIFO_RX_transfer(size_to_read);
 					SI4463_cs_inactive(G_SI4463);
+#ifdef TRACE_RX_RADIO
+					TRACE_TX_RADIO(GLOBAL_timer.read_us(), 0, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read) & RX_FIFO_mask, size_to_read);
+#endif
 					wait_us(1);
 					RX_size_remaining = RX_size_remaining - size_to_read; 
 				}
@@ -1076,6 +1082,9 @@ void SI4463_TX_new_frame(unsigned char synchro) {
 	full_packet_size = TX_size_remaining; 
 		
 	TX_frame_to_send[1] = TDMA_byte_elaboration(synchro);
+#ifdef TRACE_TX_RADIO
+	TRACE_TX_RADIO(GLOBAL_timer.read_us(), full_packet_size, TX_frame_to_send, 30);
+#endif
 	SI4463_FIFO_TX_transfer(30);
 	TX_size_remaining = TX_size_remaining - 30;
 	
@@ -1088,6 +1097,9 @@ void SI4463_TX_new_frame(unsigned char synchro) {
 	} else {
 		size_to_send = 95; //95 
 	}
+#ifdef TRACE_TX_RADIO
+	TRACE_TX_RADIO(GLOBAL_timer.read_us(), -1, TX_frame_to_send, size_to_send);
+#endif
 	SI4463_FIFO_TX_transfer(size_to_send);
 	
 	//CTS
@@ -1135,6 +1147,9 @@ void SI4463_HW_TX_IT() {
 				} else {
 					size_to_write = TX_size_remaining;
 				}
+#ifdef TRACE_TX_RADIO
+				TRACE_TX_RADIO(GLOBAL_timer.read_us(), -1, TX_frame_to_send, size_to_write);
+#endif
 				SI4463_FIFO_TX_transfer (size_to_write);
 				TX_size_remaining = TX_size_remaining - size_to_write;
 			}
