@@ -16,6 +16,8 @@ extern "C" {
 
 struct netif netif_eth;
 
+unsigned char CONF_ethernet_MAC[6];
+
 struct enc28j60 enc28j60 = {
 	.spi = spi0,
         .cs_pin = ENC_PIN_CS,
@@ -56,9 +58,7 @@ void enchw_poll(void)
 void enchw_init(void)
 {
 	struct netif *netif=&netif_eth;
-	int i;
-	for (i = 0 ; i < 6 ; i++)
-		enc28j60.mac_address[i]=CONF_modem_MAC[i];
+	memcpy(&enc28j60.mac_address, CONF_ethernet_MAC, 6);
 	netif = netif_add_noaddr(netif, &enc28j60, ethernetif_init, netif_input);
         netif_set_link_up(netif);
 	enc28j60_interrupts(&enc28j60, ENC28J60_PKTIE | ENC28J60_TXERIE | ENC28J60_RXERIE);

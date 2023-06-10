@@ -129,7 +129,7 @@ static struct command set_commands[]={
 
 static int HMI_command_help(struct context *ctx, struct command *cmd, int len, int hor)
 {
-	int i,col;
+	int i,col=0;
 	for (i = 0 ; i < len ; i++) {
 		if (hor) {
 			HMI_cprintf(ctx, " %s",cmd->cmd);

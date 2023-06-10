@@ -1,6 +1,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+extern unsigned char CONF_ethernet_MAC[6];
+extern unsigned char CONF_bridge_MAC[6];
 extern void debug(const char *str, ...);
 extern void littlefs_init(void);
 extern void enchw_poll(void);

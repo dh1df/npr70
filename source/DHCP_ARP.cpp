@@ -662,7 +662,7 @@ void ARP_RX_packet_treatment (unsigned char* ARP_RX_packet, int size) {
 	}
 	if ( (ARP_protocol_type == 0x0800) && (ARP_opcode == 0x0002) ) { // reply
 		//printf ("ARP reply\r\n");
-		if ( (LAN_conf_applied.DHCP_server_active == 0) || (is_TDMA_master) ){//only active if modem is no DHCP server
+		if ( (LAN_conf_applied.DHCP_server_active == 0 || CONF_radio_IP_size_internal != 0) || (is_TDMA_master) ){//only active if modem is no DHCP server
 			ARP_client_answer_treatment (ARP_RX_packet, size);
 		}
 	}
@@ -681,12 +681,13 @@ void DHCP_ARP_periodic_free_table () {
 
 // *** generic functions ***
 int lookfor_MAC_from_IP (unsigned char* MAC_out, unsigned long int IP_addr) {
-	int result = 0; 
+	int result = -1;
 	int i;
 	int i_found = 300;
 	unsigned int age_loc=0;
 	if ( (LAN_conf_applied.DHCP_server_active == 1) && (!is_TDMA_master) ) { //resolution for DHCP
 		i_found = 300;
+		result = 0;
 		for (i=0; i<DHCP_ARP_tab_size; i++) {
 			if ( (DHCP_ARP_IP[i] == IP_addr) && (DHCP_ARP_status[i] == 2) ) {
 				i_found = i;
@@ -699,7 +700,8 @@ int lookfor_MAC_from_IP (unsigned char* MAC_out, unsigned long int IP_addr) {
 			result = 1;
 		}
 	}
-	else { // resolution for ARP (DHCP not active)
+	if (result == -1 || (result == 0 && CONF_radio_IP_size_internal > 0)) { // resolution for ARP (DHCP not active or internal ips present)
+		result = 0;
 		i_found = 300;
 		for (i=0; i<DHCP_ARP_tab_size; i++) {
 			if ( (DHCP_ARP_IP[i] == IP_addr) && ( (DHCP_ARP_status[i] == 2) || (DHCP_ARP_status[i] == 3) ) ) {

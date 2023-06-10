@@ -28,11 +28,19 @@ static err_t radio_output_raw_fn(struct pbuf *p);
 static int verbose;
 static int bridge_radio;
 
+unsigned char CONF_bridge_MAC[6];
+
 
 static void
 IP_int2lwip(unsigned long int IP_int, ip4_addr_t *ip)
 {
 	IP_int2char(IP_int, (unsigned char *)ip);
+}
+
+static unsigned long int
+IP_lwip2int(ip4_addr_t *ip)
+{
+	return IP_char2int((unsigned char *)ip);
 }
 
 struct W5500_channel *
@@ -137,11 +145,6 @@ W5500_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 err_t
 W5500_tcp_sent(void* arg, struct tcp_pcb *pcb, u16_t len)
 {
-	struct W5500_channel *c=(struct W5500_channel *)arg;
-	gpio_put(LED_PIN, 0);
-#if 0
-	tcp_output(c->conn);
-#endif
 	return 0;
 }
 
@@ -157,7 +160,11 @@ W5500_poll(void *arg, struct tcp_pcb *tpcb)
 	return ret_err;
 }
 
-
+static int
+W5500_is_acceptable(unsigned long int ip)
+{
+	return 1;
+}
 
 
 err_t
@@ -166,6 +173,10 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 	struct W5500_channel *c=(struct W5500_channel *)arg;
 	if ((err != ERR_OK) || (newpcb == NULL)) {
 		return ERR_VAL;
+	}
+	if (!W5500_is_acceptable(IP_lwip2int(&newpcb->remote_ip))) {
+		tcp_abort(newpcb);
+		return ERR_ABRT;
 	}
 	if (c->conn) {
 		const char *str="Another session is already in use\r\n";
@@ -312,7 +323,7 @@ W5500_read_UDP_pckt(W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data,
 	debug("read_RX %p %d\r\n",p,size);
 #endif
 	if (p) {
-		int hlen=8;
+		unsigned int hlen=8;
 		if (size > p->len+hlen || size == 0)
 			size=p->len+hlen;
 		data[0]=0;
@@ -345,14 +356,13 @@ W5500_read_received_size(W5500_chip* SPI_p_loc, uint8_t sock_nb)
 void
 W5500_re_configure(void)
 {
-	ip4_addr_t addr;
 	ip_setup(1);
 }
 
 int
 W5500_read_MAC_pckt (W5500_chip* SPI_p_loc, uint8_t sock_nb, unsigned char* data)
 {
-	int i,len;
+	int len;
 	struct W5500_channel *c=W5500_chan(sock_nb);
 	if (!c)
 		return 0;
@@ -378,7 +388,7 @@ W5500_initial_configure(W5500_chip* SPI_p_loc)
 	} else {
 		uint32_t pm=0;
 		int err=cyw43_wifi_get_pm(&cyw43_state,&pm);
-		printf("wifi %d %d\r\n",pm,err);
+		printf("wifi %lu %d\r\n",pm,err);
 		if (err)
 			wifi=0;
 	}
@@ -502,20 +512,6 @@ debug_pbuf(const char *id, struct pbuf *p)
 }
 }
 
-static err_t radio_input_fn(struct pbuf *p, struct netif *netif)
-{
-	struct W5500_channel *c=W5500_chan(1);
-	struct netif *netif_input=&netif_radio;
-	// debug("radio_input_fn\r\n");
-	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
-	W5500_update_int();
-#if 0
-	if (netif_input->input(p, netif_input) != ERR_OK) 
-		pbuf_free(p);
-#endif
-	return ERR_OK;
-}
-
 static err_t radio_output_raw_fn(struct pbuf *p)
 {
 	struct netif *netif=&netif_radio;
@@ -532,9 +528,6 @@ static err_t radio_linkoutput_fn(struct netif *netif, struct pbuf *p)
 	// debug("radio_input_fn\r\n");
 	W5500_enqueue(c, (unsigned char *)p->payload, p->len);
 	W5500_update_int();
-#if 0
-	ethernet_input(p, netif);
-#endif
 	return ERR_OK;
 }
 
@@ -606,11 +599,9 @@ static void bridge_add_if(struct netif *portif)
 static err_t bridge_init_cb(struct netif *netif)
 {
 	LWIP_ASSERT("netif != NULL", (netif != NULL));
-	int i;
 	netif->mtu = 1500;
 	netif->hwaddr_len = 6;
-	for (i = 0 ; i < 6 ; i++)
-		netif->hwaddr[i]=CONF_modem_MAC[i];
+	memcpy(netif->hwaddr, CONF_bridge_MAC, 6);
 	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	netif->state = NULL;
 	netif->name[0] = 'b';
@@ -625,13 +616,17 @@ ip_setup(int reconf)
 {
 	ip4_addr_t ipaddr,netmask,gw;
 	struct netif *netif=&netif_bridge;
-	debug("ip_setup %d\r\n",reconf);
+	unsigned long int modem_IP;
+
 	if (CONF_radio_IP_size_internal && reconf) {
+		modem_IP = LAN_conf_applied.DHCP_range_start + LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal - 1;
 		bridge_radio=1;
 	} else {
+		modem_IP = LAN_conf_applied.LAN_modem_IP;
 		bridge_radio=0;
 	}
-	IP_int2lwip(LAN_conf_applied.LAN_modem_IP, &ipaddr);
+	debug("ip_setup %d %d\r\n",reconf,bridge_radio);
+	IP_int2lwip(modem_IP, &ipaddr);
 	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &netmask);
 	IP_int2lwip(LAN_conf_applied.LAN_def_route, &gw);
 	netif_set_addr(netif, &ipaddr, &netmask, &gw);
@@ -701,10 +696,8 @@ wifi_setup(void)
 static void
 bridge_setup(void)
 {
-	err_t err;
-	struct netif *netif;
-	netif=netif_add_noaddr(&netif_radio,  NULL, radio_netif_init_cb, ethernet_input);
-	netif=netif_add_noaddr(&netif_bridge, NULL, bridge_init_cb, ethernet_input);
+	netif_add_noaddr(&netif_radio,  NULL, radio_netif_init_cb, ethernet_input);
+	netif_add_noaddr(&netif_bridge, NULL, bridge_init_cb, ethernet_input);
 	bridge_add_if(&netif_radio);
 	bridge_add_if(&netif_eth);
 	bridge_add_if(&netif_usb);

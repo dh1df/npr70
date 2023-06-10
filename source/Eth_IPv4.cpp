@@ -97,7 +97,6 @@ int Eth_RX_dequeue (W5500_chip* W5500) {
 			//} 
 			
 			ethertype = RX_data[14]*0x100 + RX_data[15];
-			
 			if (ethertype == 0x0806) { //ARP packet received
 				//printf("ARP packet received!\r\n");
 				if ((!is_TDMA_master)||(CONF_master_FDD<2)) {
@@ -244,7 +243,7 @@ void IPv4_from_radio (unsigned char* RX_eth_frame, int RX_size) { //Rx size incl
 	}
 	if (!is_TDMA_master) { // TDMA client
 		// Checks if dest IP is inside local range
-		if ( (dest_IP_addr >= LAN_conf_applied.DHCP_range_start) && (dest_IP_addr < (LAN_conf_applied.DHCP_range_start + LAN_conf_applied.DHCP_range_size)) ) { 
+		if ( (dest_IP_addr >= LAN_conf_applied.DHCP_range_start) && (dest_IP_addr < (LAN_conf_applied.DHCP_range_start + LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal)) ) { 
 			eth_TX_need = 1;
 			LAN_dest_IP = dest_IP_addr;
 		}

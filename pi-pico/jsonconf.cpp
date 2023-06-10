@@ -4,6 +4,7 @@
 #include "pico_hal.h"
 #include "npr70.h"
 #include "main.h"
+#include "common.h"
 #include "../source/config_flash.h"
 #include "../source/TDMA.h"
 #include "../source/HMI_telnet.h"
@@ -347,6 +348,10 @@ config_read(char *buffer, int size, AnalogIn* analog_pin)
         CONF_modem_MAC[3] = 0x52;//R
         CONF_modem_MAC[4] = internal_mac_ls_bytes >> 8;
         CONF_modem_MAC[5] = internal_mac_ls_bytes & 0xff;
+	memcpy(CONF_bridge_MAC, CONF_modem_MAC, 6);
+	CONF_bridge_MAC[3]^=1;
+	memcpy(CONF_ethernet_MAC, CONF_modem_MAC, 6);
+	CONF_ethernet_MAC[3]^=2;
 
 	if (callsign_present) {
 		CONF_radio_my_callsign[0] = CONF_modem_MAC[4];
