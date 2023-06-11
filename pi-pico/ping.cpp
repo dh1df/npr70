@@ -41,7 +41,7 @@ static void cmd_ping_found(const char *name, const ip_addr_t *ipaddr, void *arg)
 static u8_t cmd_ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const ip_addr_t *addr)
 {
 	struct ping_context *pctx=(struct ping_context *)arg;
-	int len=p->tot_len;
+	unsigned int len=p->tot_len;
 	struct ip_hdr *ip = (struct ip_hdr *)p->payload;
 	int ttl=ip->_ttl;
 	// debug("cmd_ping_recv\r\n");
@@ -59,8 +59,7 @@ static u8_t cmd_ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const 
 static void cmd_ping_send(struct ping_context *pctx)
 {
 	struct pbuf *p;
-	uint16_t data_size = 32;
-	uint16_t size = sizeof(struct icmp_echo_hdr) + data_size;
+	uint16_t size = sizeof(struct icmp_echo_hdr) + cmd_ping_size;
 	int i;
 
 	// debug("cmd_ping_send\r\n");
@@ -73,7 +72,7 @@ static void cmd_ping_send(struct ping_context *pctx)
 		icmp_echo->id     = cmd_ping_id;
 		icmp_echo->seqno  = lwip_htons(++(pctx->seq_num));
 
-		for(i = 0; i < data_size; i++) 
+		for(i = 0; i < cmd_ping_size; i++) 
 			((char*)icmp_echo)[sizeof(struct icmp_echo_hdr) + i] = (char)i;
 
 		icmp_echo->chksum = inet_chksum(icmp_echo, size);
