@@ -91,6 +91,7 @@ int main()
 	watchdog_enable(WATCHDOG_TIMEOUT, true);
 	while (true) {
 		loop();
+		trace_loop();
 		tud_task();
 		service_traffic();
 		cyw43_arch_poll();

@@ -35,7 +35,7 @@ set(NPR70_COMMON_SOURCES
     ../source/main.cpp
 )
 
-set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.cpp littlefs.c wget.c flash.c jsonconf.cpp ping.cpp)
+set(NPR70_PI_SOURCES npr70.cpp tusb_lwip_glue.c usb_descriptors.c W5500_lwip.cpp misc.cpp enchw.cpp littlefs.c wget.c flash.c jsonconf.cpp ping.cpp trace.c)
 
 set_source_files_properties(littlefs-lib/pico-hal.c PROPERTIES COMPILE_DEFINITIONS bool=uint8_t)
 add_subdirectory(littlefs-lib)

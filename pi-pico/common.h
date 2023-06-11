@@ -9,6 +9,7 @@ extern void enchw_poll(void);
 extern void enchw_init(void);
 extern struct netif netif_eth;
 extern struct netif netif_usb;
+void trace_loop(void);
 #ifdef __cplusplus
 }
 #endif
