@@ -380,9 +380,13 @@ static int HMI_cmd_radio(struct context *c)
 {
 	if (strcmp(c->s1, "on") == 0) {
 		if (CONF_radio_state_ON_OFF == 0) {
-			RADIO_on(1, 1, 1);
+			RADIO_on(1, 1, 1, 1);
 		}
-	}
+	} else if (strcmp(c->s1, "rx") == 0) {
+		if (CONF_radio_state_ON_OFF == 0) {
+			RADIO_on(1, 1, 1, 0);
+		}
+        }
 	else if (strcmp(c->s1, "off") == 0) {
 		RADIO_off(1);
 	}

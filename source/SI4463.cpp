@@ -66,6 +66,7 @@ static unsigned char TX_temp_rframe[384];
 static unsigned char* TX_frame_to_send;
 static unsigned char TX_in_progress = 0;
 static unsigned char TX_test_inprogress = 0;
+static unsigned char TX_enabled = 0;
 //int TX_frame_pointer;
 
 void SI4463_cs_active(SI4463_Chip* SI4463)
@@ -782,7 +783,7 @@ void SI4463_RX_IT() {
 				SI4463_FIFO_RX_transfer(size_to_read);
 				SI4463_cs_inactive(G_SI4463);
 #ifdef TRACE_RX_RADIO
-				TRACE_TX_RADIO(GLOBAL_timer.read_us(), 1, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read-5) & RX_FIFO_mask, size_to_read+5);
+				TRACE_RX_RADIO(GLOBAL_timer.read_us(), 1, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read-5) & RX_FIFO_mask, size_to_read+5);
 #endif
 				wait_us(1);
 				RX_size_remaining = RX_size_remaining - size_to_read; 
@@ -804,7 +805,7 @@ void SI4463_RX_IT() {
 					SI4463_FIFO_RX_transfer(size_to_read);
 					SI4463_cs_inactive(G_SI4463);
 #ifdef TRACE_RX_RADIO
-					TRACE_TX_RADIO(GLOBAL_timer.read_us(), 0, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read) & RX_FIFO_mask, size_to_read);
+					TRACE_RX_RADIO(GLOBAL_timer.read_us(), 0, RX_FIFO_data, RX_FIFO_mask, (RX_FIFO_WR_point-size_to_read) & RX_FIFO_mask, size_to_read);
 #endif
 					wait_us(1);
 					RX_size_remaining = RX_size_remaining - size_to_read; 
@@ -1075,6 +1076,8 @@ void SI4463_TX_new_frame(unsigned char synchro) {
 	unsigned int size_to_send;
 	unsigned char trash[10];
 
+	if (!TX_enabled)
+		return;
 	TX_in_progress = 1; 
 	//prefill TX FIFO with small amount of data	
 	TX_frame_to_send++; //1st byte ignored timer coarse
@@ -1244,7 +1247,8 @@ void SI4463_radio_start(void) {
 	}
 }
 
-void RADIO_on(int need_disconnect, int need_radio_reconfigure, int HMI_output) {
+void RADIO_on(int need_disconnect, int need_radio_reconfigure, int HMI_output, int tx) {
+        TX_enabled = tx;
 	last_rframe_seen = GLOBAL_timer.read_us();
 	wait_ms(50);//10
 	if (need_radio_reconfigure == 1) {
@@ -1305,7 +1309,7 @@ void RADIO_off_if_necessary(int need_disconnect) {
 
 void RADIO_restart_if_necessary(int need_disconnect, int need_radio_reconfigure, int HMI_output) {
 	if (RADIO_previous_state == 1) {
-		RADIO_on(need_disconnect, need_radio_reconfigure, HMI_output);
+		RADIO_on(need_disconnect, need_radio_reconfigure, HMI_output, 1);
 	}
 }
 

@@ -297,7 +297,7 @@ void init2(void)
 	if (CONF_radio_default_state_ON_OFF) {
 		//TDMA_init_all();
 		//SI4463_radio_start();
-		RADIO_on(1, 0, 1);//init state, no reconfigure, HMI output
+		RADIO_on(1, 0, 1, 1);//init state, no reconfigure, HMI output
 	}
 	slow_timer.start();
 
