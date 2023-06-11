@@ -50,13 +50,15 @@ static int hf_npr70_errors = -1;
 static int hf_npr70_client = -1;
 static int hf_npr70_proto = -1;
 static int hf_npr70_signal = -1;
-static int hf_npr70_wlen = -1;
+static int hf_npr70_slen = -1;
 static int hf_npr70_id = -1;
 static int hf_npr70_mac = -1;
 static int hf_npr70_callsign = -1;
 static int hf_npr70_ip_start = -1;
 static int hf_npr70_ip_length = -1;
 static int hf_npr70_rssi_uplink = -1;
+static int hf_npr70_ber = -1;
+static int hf_npr70_ta = -1;
 
 static int hf_npr70_tdma_offset = -1;
 static int hf_npr70_tdma_slot_length = -1;
@@ -118,14 +120,15 @@ static const fragment_items mp_frag_items = {
 #define NPR70_HDR_LEN   4
 
 static const value_string npr70_type_vals[] = {
-  { 0, "RX Init" },
+  { 0, "RX Start" },
   { 1, "RX Cont" },
-  { 2, "Tx Init" },
+  { 2, "Tx Start" },
   { 3, "Tx Cont" },
   { 0, NULL }
 };
 
 static const value_string npr70_proto_vals[] = {
+  { 0, "Null" },
   { 0x1e, "Signal" },
   { 0x1f, "Alloc" },
 };
@@ -238,13 +241,24 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
 }
 
 static int
-dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
+dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
 {
-  guint8      npr70_signal;
+  guint8      npr70_signal, npr70_len;
+  int saved_offset;
 
-  proto_tree_add_item(tree, hf_npr70_signal, tvb, offset, 1, ENC_NA);
+  if (tvb_reported_length_remaining(tvb, offset) < 2)
+    return -1;
   npr70_signal = tvb_get_guint8(tvb, offset);
+  if (npr70_signal == 0xff)
+        return -1;
+  proto_tree_add_item(tree, hf_npr70_signal, tvb, offset, 1, ENC_NA);
   offset++;
+  npr70_len = tvb_get_guint8(tvb, offset);
+  proto_tree_add_item(tree, hf_npr70_slen, tvb, offset, 1, ENC_NA);
+  offset++;
+  if (tvb_reported_length_remaining(tvb, offset) < npr70_len)
+    return -1;
+  saved_offset=offset;
 #if 0
   printf("npr70fec proto=%d\n",npr70_proto);
 #endif
@@ -253,9 +267,9 @@ dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int of
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "NULL");
     break;
   case 1:
+    if (tvb_reported_length_remaining(tvb, offset) < 32)
+      return -1;
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "WHO");
-    proto_tree_add_item(tree, hf_npr70_wlen, tvb, offset, 1, ENC_NA);
-    offset++;
     proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
     offset++;
     proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -268,13 +282,29 @@ dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int of
     offset+=4;
     proto_tree_add_item(tree, hf_npr70_rssi_uplink, tvb, offset, 1, ENC_NA);
     offset+=1;
+    proto_tree_add_item(tree, hf_npr70_ber, tvb, offset, 2, ENC_BIG_ENDIAN);
+    offset+=2;
+    proto_tree_add_item(tree, hf_npr70_ta, tvb, offset, 2, ENC_BIG_ENDIAN);
+    offset+=2;
     break;
   default:
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signal ???");
+    return -1;
     break;
   }
+  return saved_offset+npr70_len;
+}
+
+static int
+dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
+{
+  col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signal");
+  do {
+    offset=dissect_npr70_signal_single(tvb, pinfo, tree, offset);
+  } while (offset != -1);
   return tvb_captured_length(tvb);
 }
+
 
 static int
 dissect_npr70_alloc_client(tvbuff_t *tvb,  proto_tree *tree, int offset)
@@ -327,6 +357,9 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   npr70_protocol = tvb_get_guint8(tvb, offset);
   offset++;
   switch(npr70_protocol) {
+  case 0:
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "NULL");
+    break;
   case 0x1e:
     return dissect_npr70_signal(tvb, pinfo, npr70_tree, offset);
   case 0x1f:
@@ -436,8 +469,8 @@ proto_register_npr70(void)
         FT_UINT8, BASE_DEC, VALS(npr70_signal_vals), 0x0,
         NULL, HFILL }},
 
-    { &hf_npr70_wlen, {
-        "Who_length", "npr70.wholen",
+    { &hf_npr70_slen, {
+        "Signal_length", "npr70.slen",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
@@ -469,6 +502,16 @@ proto_register_npr70(void)
     { &hf_npr70_rssi_uplink, {
         "RSSI Uplink", "npr70.rssi_uplink",
         FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_ber, {
+        "BER", "npr70.berr",
+        FT_UINT16, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_ta, {
+        "Timing Advance", "npr70.ta",
+        FT_UINT16, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_tdma_offset, {
