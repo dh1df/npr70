@@ -1086,7 +1086,7 @@ void SI4463_TX_new_frame(unsigned char synchro) {
 		
 	TX_frame_to_send[1] = TDMA_byte_elaboration(synchro);
 #ifdef TRACE_TX_RADIO
-	TRACE_TX_RADIO(GLOBAL_timer.read_us(), full_packet_size, TX_frame_to_send, 30);
+	TRACE_TX_RADIO(GLOBAL_timer.read_us(), 1, TX_frame_to_send, 30);
 #endif
 	SI4463_FIFO_TX_transfer(30);
 	TX_size_remaining = TX_size_remaining - 30;
@@ -1101,7 +1101,7 @@ void SI4463_TX_new_frame(unsigned char synchro) {
 		size_to_send = 95; //95 
 	}
 #ifdef TRACE_TX_RADIO
-	TRACE_TX_RADIO(GLOBAL_timer.read_us(), -1, TX_frame_to_send, size_to_send);
+	TRACE_TX_RADIO(GLOBAL_timer.read_us(), 0, TX_frame_to_send, size_to_send);
 #endif
 	SI4463_FIFO_TX_transfer(size_to_send);
 	

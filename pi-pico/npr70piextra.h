@@ -71,4 +71,6 @@ void ext_SRAM_read2(void* loc_SPI, unsigned char* loc_data, unsigned int address
 void ext_SRAM_write2(void* loc_SPI, unsigned char* loc_data, unsigned int address, int size);
 
 #define TRACE_RX_RADIO trace_rx_radio
+#define TRACE_TX_RADIO trace_tx_radio
 extern void trace_rx_radio(unsigned int us, int initial, unsigned char *data, int mask, int offset, int len);
+extern void trace_tx_radio(unsigned int us, int initial, unsigned char *data, int len);
