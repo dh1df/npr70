@@ -1151,7 +1151,7 @@ void SI4463_HW_TX_IT() {
 					size_to_write = TX_size_remaining;
 				}
 #ifdef TRACE_TX_RADIO
-				TRACE_TX_RADIO(GLOBAL_timer.read_us(), -1, TX_frame_to_send, size_to_write);
+				TRACE_TX_RADIO(GLOBAL_timer.read_us(), 0, TX_frame_to_send, size_to_write);
 #endif
 				SI4463_FIFO_TX_transfer (size_to_write);
 				TX_size_remaining = TX_size_remaining - size_to_write;
