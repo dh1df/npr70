@@ -31,11 +31,12 @@ WS_DLL_PUBLIC_DEF const int plugin_want_major = WIRESHARK_VERSION_MAJOR;
 WS_DLL_PUBLIC_DEF const int plugin_want_minor = WIRESHARK_VERSION_MINOR;
 WS_DLL_PUBLIC void plugin_register(void);
 
-
+wmem_tree_t *npr70_fragments;
 void proto_register_npr70(void);
 void proto_reg_handoff_npr70(void);
+static int dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_);
 
-static dissector_handle_t foo_handle;
+static dissector_handle_t ip_handle;
 
 int proto_npr70 = -1;
 int proto_npr70fec = -1;
@@ -56,6 +57,21 @@ static int hf_npr70_mac = -1;
 static int hf_npr70_callsign = -1;
 static int hf_npr70_ip_start = -1;
 static int hf_npr70_ip_length = -1;
+static int hf_npr70_static_alloc = -1;
+
+static int hf_npr70_master_mac = -1;
+static int hf_npr70_master_callsign = -1;
+static int hf_npr70_modem_ip = -1;
+static int hf_npr70_subnet_mask = -1;
+static int hf_npr70_default_route_active = -1;
+static int hf_npr70_default_route = -1;
+static int hf_npr70_dns_active = -1;
+static int hf_npr70_dns = -1;
+
+static int hf_npr70_pkt_counter = -1;
+static int hf_npr70_is_last_seg = -1;
+static int hf_npr70_seg_counter = -1;
+
 static int hf_npr70_rssi_uplink = -1;
 static int hf_npr70_ber = -1;
 static int hf_npr70_ta = -1;
@@ -87,8 +103,6 @@ static gint hf_mp_fragment_count = -1;
 static gint hf_mp_reassembled_in = -1;
 static gint hf_mp_reassembled_length = -1;
 
-static int ett_mp = -1;
-static int ett_mp_flags = -1;
 static gint ett_mp_fragment = -1;
 static gint ett_mp_fragments = -1;
 
@@ -129,13 +143,14 @@ static const value_string npr70_type_vals[] = {
 
 static const value_string npr70_proto_vals[] = {
   { 0, "Null" },
+  { 2, "IP" },
   { 0x1e, "Signal" },
   { 0x1f, "Alloc" },
 };
 
 static const value_string npr70_signal_vals[] = {
   { 0, "NULL" },
-  { 1, "WHOIS" },
+  { 1, "WHO" },
   { 5, "CONN REQ" },
   { 6, "CONN ACK" },
   { 7, "CONN NACK" },
@@ -144,24 +159,16 @@ static const value_string npr70_signal_vals[] = {
   { 0, NULL }
 };
 
-#if 1
-static void
-print_fragment_table_chain(gpointer k _U_, gpointer v, gpointer ud _U_) {
-        printf("%p %p\n",k,v);
-}
-#endif
-
 static int
 dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
   int         offset = 0;
   int         remaining;
-  gboolean    more;
   guint8      npr70_type;
   proto_tree *ti;
   proto_tree *npr70_tree;
   tvbuff_t   *next_tvb;
-  fragment_head *frag_msg;
+  fragment_head *frag_msg = NULL;
 
 #if 1
   pinfo->srcport=0;
@@ -193,6 +200,8 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
 
     proto_tree_add_item(npr70_tree, hf_npr70_rssi, tvb, offset, 1, ENC_NA);
     offset+=1;
+  }
+  if (npr70_type == 0 || npr70_type == 2) {
 
     npr70_len = tvb_get_guint8(tvb, offset)+90;
     proto_tree_add_uint(npr70_tree, hf_npr70_len, tvb, offset, 1, npr70_len);
@@ -206,35 +215,31 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
     npr70_len--;
   }
   remaining=tvb_captured_length_remaining(tvb, offset);
-  more=fragments_size+remaining < npr70_len;
-  frag_msg = fragment_add(&npr70_reassembly_table, tvb, offset, pinfo, reassembly_id, NULL, fragments_size, remaining, more);
-  fragments_size += remaining;
-  if (!more && !frag_msg) {
-        g_hash_table_foreach(npr70_reassembly_table.fragment_table, print_fragment_table_chain, NULL);
-        printf("error\n");
-        exit(0);
+  if (!pinfo->fd->visited) {
+    gboolean more=fragments_size+remaining < npr70_len;
+    wmem_tree_insert32(npr70_fragments, pinfo->num, (void *)(long)reassembly_id);
+    frag_msg = fragment_add(&npr70_reassembly_table, tvb, offset, pinfo, reassembly_id, NULL, fragments_size, remaining, more);
   }
+  frag_msg = fragment_get(&npr70_reassembly_table, pinfo, (int)(long)wmem_tree_lookup32(npr70_fragments, pinfo->num), NULL);
+  fragments_size += remaining;
   if (frag_msg) {
     next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Message", frag_msg, &mp_frag_items, NULL, NULL);
     if (next_tvb) {
       guchar *fec_buffer = (guchar*)wmem_alloc(pinfo->pool, npr70_len);
       const unsigned char *buf = tvb_get_ptr(next_tvb, 0, -1);
       unsigned int errors;
-      int len=FEC_decode(buf, -1, 0, fec_buffer, npr70_len, &errors);
+      int len=FEC_decode(buf, -1, 0, fec_buffer, tvb_reported_length(next_tvb), &errors);
       proto_tree_add_uint(npr70_tree, hf_npr70_errors, tvb, 0, 0, 0);
-#if 0
-    int i;
-    printf("(%d)",npr70_len);
-    for (i = 0 ; i < npr70_len ; i++)
-        printf(" %02x",buf[i]);
-    printf("\n");
-#endif
-#if 0
-    proto_tree_add_uint(npr70_tree, hf_npr70_errors, tvb, 0, 0, errors);
-#endif
-      next_tvb = tvb_new_child_real_data(next_tvb, fec_buffer, len, len);
-      add_new_data_source(pinfo, next_tvb, "FECed Message");
-      call_dissector(npr70fec_handle, next_tvb, pinfo, npr70_tree);
+      if (len) {
+        next_tvb = tvb_new_child_real_data(next_tvb, fec_buffer, len, len);
+        proto_item *frag_tree_item;
+        show_fragment_tree(frag_msg, &mp_frag_items, tree, pinfo, next_tvb, &frag_tree_item);
+        add_new_data_source(pinfo, next_tvb, "FECed Message");
+        dissect_npr70fec(next_tvb, pinfo, tree, NULL);
+      }
+    } else {
+       col_append_fstr(pinfo->cinfo, COL_INFO, " (NPR70 reassembled in packet %u)", frag_msg->reassembled_in);
+
     }
   }
   return tvb_captured_length(tvb);
@@ -243,7 +248,7 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
 static int
 dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
 {
-  guint8      npr70_signal, npr70_len;
+  guint8      npr70_signal, npr70_len, id;
   int saved_offset;
 
   if (tvb_reported_length_remaining(tvb, offset) < 2)
@@ -263,13 +268,12 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
   printf("npr70fec proto=%d\n",npr70_proto);
 #endif
   switch (npr70_signal) {
-  case 0:
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "NULL");
-    break;
   case 1:
     if (tvb_reported_length_remaining(tvb, offset) < 32)
       return -1;
+    id = tvb_get_guint8(tvb, offset);
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "WHO");
+    col_add_fstr(pinfo->cinfo, COL_INFO, "WHO %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
     proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
     offset++;
     proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -286,6 +290,49 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     offset+=2;
     proto_tree_add_item(tree, hf_npr70_ta, tvb, offset, 2, ENC_BIG_ENDIAN);
     offset+=2;
+    break;
+  case 5:
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "CONN_REQ");
+    col_add_fstr(pinfo->cinfo, COL_INFO, "CONN_REQ %s", tvb_get_ptr(tvb, offset+2, -1));
+    proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
+    offset+=2;
+    proto_tree_add_item(tree, hf_npr70_callsign, tvb, offset, 14, ENC_NA);
+    offset+=14;
+    proto_tree_add_item(tree, hf_npr70_ip_length, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_static_alloc, tvb, offset, 1, ENC_NA);
+    offset+=1;
+    break;
+  case 6:
+    id = tvb_get_guint8(tvb, offset);
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "CONN_ACK");
+    col_add_fstr(pinfo->cinfo, COL_INFO, "CONN_ACK %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
+    proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
+    offset++;
+    proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
+    offset+=2;
+    proto_tree_add_item(tree, hf_npr70_callsign, tvb, offset, 14, ENC_NA);
+    offset+=14;
+    proto_tree_add_item(tree, hf_npr70_ip_start, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_ip_length, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_master_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
+    offset+=2;
+    proto_tree_add_item(tree, hf_npr70_master_callsign, tvb, offset, 14, ENC_NA);
+    offset+=14;
+    proto_tree_add_item(tree, hf_npr70_modem_ip, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_subnet_mask, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_default_route_active, tvb, offset, 1, ENC_NA);
+    offset++;
+    proto_tree_add_item(tree, hf_npr70_default_route, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
+    proto_tree_add_item(tree, hf_npr70_dns_active, tvb, offset, 1, ENC_NA);
+    offset++;
+    proto_tree_add_item(tree, hf_npr70_dns, tvb, offset, 4, ENC_BIG_ENDIAN);
+    offset+=4;
     break;
   default:
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signal ???");
@@ -307,7 +354,7 @@ dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int of
 
 
 static int
-dissect_npr70_alloc_client(tvbuff_t *tvb,  proto_tree *tree, int offset)
+dissect_npr70_alloc_client(tvbuff_t *tvb,  packet_info *pinfo, proto_tree *tree, int offset)
 {
   guint8 client;
   if (tvb_reported_length_remaining(tvb, offset) < 5)
@@ -317,6 +364,7 @@ dissect_npr70_alloc_client(tvbuff_t *tvb,  proto_tree *tree, int offset)
     return -1;
   proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
   offset++;
+  col_append_fstr(pinfo->cinfo, COL_INFO, " %d",client);
   proto_tree_add_item(tree, hf_npr70_tdma_offset, tvb, offset, 2, ENC_BIG_ENDIAN);
   offset+=2;
   proto_tree_add_item(tree, hf_npr70_tdma_slot_length, tvb, offset, 1, ENC_NA);
@@ -329,9 +377,10 @@ dissect_npr70_alloc_client(tvbuff_t *tvb,  proto_tree *tree, int offset)
 static int
 dissect_npr70_alloc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
 {
-  col_set_str(pinfo->cinfo, COL_PROTOCOL, "Alloc");
+  col_set_str(pinfo->cinfo, COL_PROTOCOL, "ALLOC");
+  col_set_str(pinfo->cinfo, COL_INFO, "ALLOC");
   do {
-    offset=dissect_npr70_alloc_client(tvb, tree, offset);
+    offset=dissect_npr70_alloc_client(tvb, pinfo, tree, offset);
   } while (offset != -1);
   return tvb_captured_length(tvb);
 }
@@ -340,7 +389,7 @@ static int
 dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
   int         offset = 0;
-  guint8      npr70_protocol;
+  guint8      npr70_seg, npr70_protocol, id;
   proto_tree *ti;
   proto_tree *npr70_tree;
 
@@ -351,6 +400,7 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   npr70_tree = proto_item_add_subtree(ti, ett_npr70fe);
 
   proto_tree_add_item(npr70_tree, hf_npr70_client, tvb, offset, 1, ENC_NA);
+  id = tvb_get_guint8(tvb, offset);
   offset++;
 
   proto_tree_add_item(npr70_tree, hf_npr70_proto, tvb, offset, 1, ENC_NA);
@@ -359,6 +409,17 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   switch(npr70_protocol) {
   case 0:
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "NULL");
+    col_add_fstr(pinfo->cinfo, COL_INFO, "NULL %d",id);
+    break;
+  case 2:
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "IP");
+    npr70_seg = tvb_get_guint8(tvb, offset);
+    proto_tree_add_uint(npr70_tree, hf_npr70_pkt_counter, tvb, offset, 1, (npr70_seg & 0xf0) >> 4);
+    proto_tree_add_uint(npr70_tree, hf_npr70_is_last_seg, tvb, offset, 1, (npr70_seg & 0x08) >> 3);
+    proto_tree_add_uint(npr70_tree, hf_npr70_seg_counter, tvb, offset, 1, npr70_seg & 0x07);
+    offset++;
+    tvbuff_t *next_tvb = tvb_new_subset_remaining(tvb, offset);
+    call_dissector(ip_handle, next_tvb, pinfo, tree);
     break;
   case 0x1e:
     return dissect_npr70_signal(tvb, pinfo, npr70_tree, offset);
@@ -368,7 +429,6 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "Proto ???");
     break;
   }
-  col_clear(pinfo->cinfo, COL_INFO);
   return tvb_captured_length(tvb);
 }
 
@@ -480,7 +540,7 @@ proto_register_npr70(void)
         NULL, HFILL }},
 
     { &hf_npr70_mac, {
-        "mac", "npr70.mac",
+        "MAC", "npr70.mac",
         FT_UINT8, BASE_HEX, NULL, 0x0,
         NULL, HFILL }},
 
@@ -497,6 +557,66 @@ proto_register_npr70(void)
     { &hf_npr70_ip_length, {
         "IP Length", "npr70.ip_length",
         FT_UINT32, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_static_alloc, {
+        "Static alloc", "npr70.static_alloc",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_master_mac, {
+        "Master MAC", "npr70.master_mac",
+        FT_UINT8, BASE_HEX, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_master_callsign, {
+        "Master Callsign", "npr70.master_callsign",
+        FT_STRING, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_modem_ip, {
+        "Modem IP", "npr70.modem_ip",
+        FT_IPv4, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_subnet_mask, {
+        "Subnet Mask", "npr70.subnet_mask",
+        FT_IPv4, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_default_route_active, {
+        "Default Route active", "npr70.default_route_active",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_default_route, {
+        "Default Route", "npr70.default_route",
+        FT_IPv4, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_dns_active, {
+        "DNS active", "npr70.dns_active",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_dns, {
+        "DNS", "npr70.dns",
+        FT_IPv4, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_pkt_counter, {
+        "Packet counter", "npr70.pkt_counter",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_is_last_seg, {
+        "Is last SEG", "npr70.is_last_seq",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_seg_counter, {
+        "SEG counter", "npr70.seg_counter",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_rssi_uplink, {
@@ -534,6 +654,8 @@ proto_register_npr70(void)
   static gint *ett[] = {
     &ett_npr70,
     &ett_npr70fe,
+    &ett_mp_fragment,
+    &ett_mp_fragments
   };
 
   proto_npr70 = proto_register_protocol("New Packet Radio 70", "NPR70", "npr70");
@@ -547,6 +669,7 @@ proto_register_npr70(void)
 
   reassembly_table_register(&npr70_reassembly_table, &addresses_ports_reassembly_table_functions);
   reassembly_table_register(&ip_reassembly_table, &addresses_ports_reassembly_table_functions);
+  npr70_fragments = wmem_tree_new(wmem_epan_scope());
 
 }
 
@@ -554,7 +677,7 @@ void
 proto_reg_handoff_npr70(void)
 {
   dissector_add_uint("ethertype", 0xffff, npr70_handle);
-  foo_handle = find_dissector("ip");
+  ip_handle = find_dissector("ip");
 }
 
 void
