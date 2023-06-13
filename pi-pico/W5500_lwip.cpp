@@ -72,7 +72,7 @@ W5500_enqueue_pbuf(struct W5500_channel *c, struct pbuf *p)
 void
 W5500_enqueue(struct W5500_channel *c, unsigned char *data, int size)
 {
-	struct pbuf *p=pbuf_alloc(PBUF_RAW, size, PBUF_RAM);
+	struct pbuf *p=pbuf_alloc(PBUF_RAW, size, PBUF_POOL);
 	memcpy(p->payload, data, size);
 	W5500_enqueue_pbuf(c, p);
 }
