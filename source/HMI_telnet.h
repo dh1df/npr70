@@ -60,7 +60,7 @@ void HMI_line_parse (struct context *c, char* RX_text, int RX_text_count);
 
 void HMI_cancel_current(struct context *c);
 
-int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help);
+int HMI_command_parse(struct context *ctx, const char *s, const struct command *cmd, int len, int help);
 
 
 

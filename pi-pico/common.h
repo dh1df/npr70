@@ -1,6 +1,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#define INT_SRAM_SIZE (128*1024)
+extern unsigned char int_sram[INT_SRAM_SIZE];
+
 extern unsigned char CONF_ethernet_MAC[6];
 extern unsigned char CONF_bridge_MAC[6];
 extern void debug(const char *str, ...);

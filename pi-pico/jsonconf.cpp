@@ -42,7 +42,7 @@ static float internal_shift;
 static uint16_t internal_mac_ls_bytes;
 static int xconfig_count=3;
 
-struct config {
+static struct config {
 	const char *name;
 	enum type type;
 	void *dest;

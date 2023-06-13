@@ -14,12 +14,12 @@ extern const char* FS_BASE;
 extern struct lfs_config pico_cfg;
 
 static struct map {
-	const unsigned char *source;
+	const char *source;
 	int len;
-} map[512];
+} *map=(struct map *)(&int_sram[4096]);
 
 volatile static int step;
-static unsigned char flash_buffer[4096];
+static unsigned char *flash_buffer=int_sram;
 #define WATCHDOG_TIMEOUT 4000
 
 static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int dst, int blocks, int block_size)
@@ -31,7 +31,7 @@ static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int
 	step=2;
 	while (idx < count) {
 		int i,len=map[idx].len;
-		const unsigned char *source=map[idx].source;
+		const char *source=map[idx].source;
 		for (i = 0 ; i < len ; i++) {
 			flash_buffer[pos++]=source[i];
 			if (pos >= block_size) {
@@ -80,7 +80,7 @@ static int cmd_flash_do(struct context *ctx, char *filename)
 			size=total_size-pos;
 		map[idx].source=FS_BASE + XIP_NOCACHE_NOALLOC_BASE + (block * pico_cfg.block_size) + offset;
 		map[idx].len=size;
-                printf("%d %d %d %p %d\n",ret,block,offset, map[idx].source, size);
+                printf("%d %ld %ld %p %d\n",ret,block,offset, map[idx].source, size);
 		idx++;
                 pos+=size;
         }

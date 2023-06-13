@@ -75,7 +75,7 @@ static int HMI_cmd_display_config(struct context *c);
 static int HMI_cmd_display_dhcp_arp(struct context *c);
 static int HMI_cmd_display_static(struct context *c);
 
-static struct command commands[]={
+static const struct command commands[]={
 #ifdef CUSTOM_COMMANDS
 	CUSTOM_COMMANDS
 #endif
@@ -93,7 +93,7 @@ static struct command commands[]={
 	{"who", HMI_cmd_who},
 };
 
-static struct command display_commands[]={
+static const struct command display_commands[]={
 #ifdef CUSTOM_DISPLAY_COMMANDS
 	CUSTOM_DISPLAY_COMMANDS
 #endif
@@ -102,7 +102,7 @@ static struct command display_commands[]={
 	{"static", HMI_cmd_display_static},
 };
 
-static struct command set_commands[]={
+static const struct command set_commands[]={
 	{"callsign", HMI_cmd_set_callsign},
 	{"client_req_size", HMI_cmd_set_client_req_size},
 	{"def_route_active", HMI_cmd_set_def_route_active},
@@ -127,7 +127,7 @@ static struct command set_commands[]={
 	{"telnet_routed", HMI_cmd_set_telnet_routed},
 };
 
-static int HMI_command_help(struct context *ctx, struct command *cmd, int len, int hor)
+static int HMI_command_help(struct context *ctx, const struct command *cmd, int len, int hor)
 {
 	int i,col=0;
 	for (i = 0 ; i < len ; i++) {
@@ -147,7 +147,7 @@ static int HMI_command_help(struct context *ctx, struct command *cmd, int len, i
 	return 2;
 }
 
-int HMI_command_parse(struct context *ctx, const char *s, struct command *cmd, int len, int help)
+int HMI_command_parse(struct context *ctx, const char *s, const struct command *cmd, int len, int help)
 {
 	int i;
 	if (help && !strcmp(s,"help"))

@@ -6,6 +6,7 @@
 #include "../source/HMI_telnet.h"
 #include "../source/DHCP_ARP.h"
 #include "mbed.h"
+#include "common.h"
 
 unsigned char int_sram[INT_SRAM_SIZE];
 
