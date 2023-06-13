@@ -156,6 +156,7 @@ static const value_string npr70_signal_vals[] = {
   { 7, "CONN NACK" },
   { 0xb, "DISCONN REQ" },
   { 0xc, "DISCONN ACK" },
+  { 0xff, "END" },
   { 0, NULL }
 };
 
@@ -254,10 +255,12 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
   if (tvb_reported_length_remaining(tvb, offset) < 2)
     return -1;
   npr70_signal = tvb_get_guint8(tvb, offset);
-  if (npr70_signal == 0xff)
-        return -1;
   proto_tree_add_item(tree, hf_npr70_signal, tvb, offset, 1, ENC_NA);
   offset++;
+  if (npr70_signal == 0xff) {
+        col_append_fstr(pinfo->cinfo, COL_INFO, " END");
+        return -1;
+  }
   npr70_len = tvb_get_guint8(tvb, offset);
   proto_tree_add_item(tree, hf_npr70_slen, tvb, offset, 1, ENC_NA);
   offset++;
@@ -272,8 +275,7 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     if (tvb_reported_length_remaining(tvb, offset) < 32)
       return -1;
     id = tvb_get_guint8(tvb, offset);
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "WHO");
-    col_add_fstr(pinfo->cinfo, COL_INFO, "WHO %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
+    col_append_fstr(pinfo->cinfo, COL_INFO, " WHO %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
     proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
     offset++;
     proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -292,8 +294,7 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     offset+=2;
     break;
   case 5:
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "CONN_REQ");
-    col_add_fstr(pinfo->cinfo, COL_INFO, "CONN_REQ %s", tvb_get_ptr(tvb, offset+2, -1));
+    col_append_fstr(pinfo->cinfo, COL_INFO, " CONN_REQ %s", tvb_get_ptr(tvb, offset+2, -1));
     proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
     offset+=2;
     proto_tree_add_item(tree, hf_npr70_callsign, tvb, offset, 14, ENC_NA);
@@ -305,8 +306,7 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     break;
   case 6:
     id = tvb_get_guint8(tvb, offset);
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "CONN_ACK");
-    col_add_fstr(pinfo->cinfo, COL_INFO, "CONN_ACK %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
+    col_append_fstr(pinfo->cinfo, COL_INFO, " CONN_ACK %d %s",id,tvb_get_ptr(tvb, offset+3, -1));
     proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
     offset++;
     proto_tree_add_item(tree, hf_npr70_mac, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -345,7 +345,7 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
 static int
 dissect_npr70_signal(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
 {
-  col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signal");
+  col_set_str(pinfo->cinfo, COL_PROTOCOL, "SIGNAL");
   do {
     offset=dissect_npr70_signal_single(tvb, pinfo, tree, offset);
   } while (offset != -1);
@@ -360,10 +360,12 @@ dissect_npr70_alloc_client(tvbuff_t *tvb,  packet_info *pinfo, proto_tree *tree,
   if (tvb_reported_length_remaining(tvb, offset) < 5)
     return -1;
   client  = tvb_get_guint8(tvb, offset);
-  if (client == 0xff)
-    return -1;
   proto_tree_add_item(tree, hf_npr70_id, tvb, offset, 1, ENC_NA);
   offset++;
+  if (client == 0xff) {
+    col_append_fstr(pinfo->cinfo, COL_INFO, " END");
+    return -1;
+  }
   col_append_fstr(pinfo->cinfo, COL_INFO, " %d",client);
   proto_tree_add_item(tree, hf_npr70_tdma_offset, tvb, offset, 2, ENC_BIG_ENDIAN);
   offset+=2;
@@ -422,6 +424,7 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
     call_dissector(ip_handle, next_tvb, pinfo, tree);
     break;
   case 0x1e:
+    col_add_fstr(pinfo->cinfo, COL_INFO, "SIGNAL %d",id);
     return dissect_npr70_signal(tvb, pinfo, npr70_tree, offset);
   case 0x1f:
     return dissect_npr70_alloc(tvb, pinfo, npr70_tree, offset);
@@ -468,7 +471,7 @@ proto_register_npr70(void)
 
     { &hf_npr70_tdma, {
         "TDMA", "npr70.tdma",
-        FT_UINT8, BASE_DEC, NULL, 0x0,
+        FT_UINT8, BASE_HEX, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_errors, {
