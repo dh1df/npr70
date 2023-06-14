@@ -3,6 +3,7 @@
 #include "lwip/netif.h"
 #include "common.h"
 #include "npr70piextra.h"
+#include "../source/HMI_telnet.h"
 
 static unsigned char seq;
 static int tracing;
@@ -81,7 +82,15 @@ void trace_tx_radio(unsigned int us, int initial, unsigned char *data, int len)
 
 int cmd_trace(struct context *ctx)
 {
-	tracing=1;
+	if (!strcmp(ctx->s1,"on"))
+		tracing=1;
+	else if (!strcmp(ctx->s1,"off"))
+		tracing=0;
+	else {
+		if (strcmp(ctx->s1,"status"))
+			HMI_cprintf(ctx,"Use on|off|status\r\n");
+		HMI_cprintf(ctx,"Tracing is %s, nomem %d, overflow %d\r\n", tracing?"on":"off", err_nomem, err_overflow);
+	}
 	return 3;
 }
 
