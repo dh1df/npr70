@@ -70,8 +70,6 @@ extern unsigned int TX_buff_ext_last_ready;
 
 extern unsigned char TX_TDMA_intern_data[384];
 
-extern char HMI_out_str[120];
-
 // RX FIFO (RX from radio)
 extern unsigned int RX_FIFO_WR_point;
 extern unsigned int RX_FIFO_RD_point;

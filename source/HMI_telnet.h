@@ -24,9 +24,10 @@
 
 int telnet_loop(W5500_chip* W5500);
 
-#else
-extern char HMI_out_str[120];
+extern "C" {
 #endif
+
+extern char HMI_out_str[120];
 
 struct context {
   char *cmd;
@@ -82,13 +83,9 @@ void HMI_periodic_call(void);
 
 void HMI_periodic_fast_call(void);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 void HMI_printf_detail (const char *str);
 void HMI_cwrite(struct context *c, const char *buffer, int size);
 #ifdef __cplusplus
 }
 #endif
-
 #endif
