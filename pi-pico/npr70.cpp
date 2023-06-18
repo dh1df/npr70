@@ -43,19 +43,12 @@ DigitalInOut FDD_trig_pin(GPIO_11_PIN);
 InterruptIn FDD_trig_IRQ(GPIO_11_PIN);
 DigitalOut PTT_PA_pin(GPIO_10_PIN);
 
-static unsigned int timer_snapshot;
-static Timer slow_timer;
-static int temperature_timer;
-static int slow_action_counter;
-static int signaling_counter;
-
-
 void debug(const char *str, ...)
 {
 	va_list ap;
-	char buffer[128];
 	va_start(ap, str);
 #if 0
+	char buffer[128];
 	vsnprintf(buffer, sizeof(buffer), str, ap);
 	W5500_transmit(&W5500_channel[TELNET_SOCKET], (unsigned char *)buffer, strlen(buffer));
 #else
@@ -67,12 +60,12 @@ void debug(const char *str, ...)
 int
 cmd_test(struct context *ctx)
 {
+	HMI_cprintf(ctx, "%d\r\n", Int_SI4463.read());
 	return 3;
 }
 
 int main()
 {
-	int wifi=1;
 	stdio_uart_init_full(uart_default, 921600, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
