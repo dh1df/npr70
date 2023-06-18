@@ -161,7 +161,7 @@ W5500_poll(void *arg, struct tcp_pcb *tpcb)
 }
 
 static int
-W5500_is_acceptable(unsigned long int ip)
+W5500_is_acceptable(unsigned long int ip, int port, int proto)
 {
 	return 1;
 }
@@ -174,7 +174,7 @@ W5500_accept(void *arg, struct tcp_pcb *newpcb, err_t err)
 	if ((err != ERR_OK) || (newpcb == NULL)) {
 		return ERR_VAL;
 	}
-	if (!W5500_is_acceptable(IP_lwip2int(&newpcb->remote_ip))) {
+	if (!W5500_is_acceptable(IP_lwip2int(&newpcb->remote_ip), newpcb->local_port, IP_PROTO_TCP)) {
 		tcp_abort(newpcb);
 		return ERR_ABRT;
 	}
