@@ -8,7 +8,11 @@ pico_sdk_init()
 set(WIFI_SSID "${WIFI_SSID}" CACHE INTERNAL "WiFi SSID for examples")
 set(WIFI_PASSWORD "${WIFI_PASSWORD}" CACHE INTERNAL "WiFi password for examples")
 
-
+execute_process(COMMAND
+  git describe --always --dirty
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_SHA1
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set(TUSB_INCLUDE ${PICO_SDK_PATH}/lib/tinyusb/lib/networking)
 
@@ -41,7 +45,7 @@ set_source_files_properties(littlefs-lib/pico-hal.c PROPERTIES COMPILE_DEFINITIO
 add_subdirectory(littlefs-lib)
 
 add_executable(${PROJECT_NAME} ${NPR70_PI_SOURCES} ${NPR70_COMMON_SOURCES} ${ENC28J60_SOURCES} ${TINYUSB_LIBNETWORKING_SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" FS_SIZE=1048576)
+target_compile_definitions(${PROJECT_NAME} PRIVATE WIFI_SSID=\"${WIFI_SSID}\" WIFI_PASSWORD=\"${WIFI_PASSWORD}\" FS_SIZE=1048576 -DFW_VERSION="PI DH1DF ${GIT_SHA1}")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
 #target_link_options(${PROJECT_NAME} PRIVATE -Wl,--wrap=cyw43_cb_tcpip_init)
 

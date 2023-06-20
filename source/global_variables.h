@@ -44,7 +44,9 @@ extern ext_SRAM_chip* SPI_SRAM_p;
 	#define SI4463_NOUTDIV 8
 #endif
 
-#define FW_VERSION "2020_05_16-DH1DF"
+#ifndef FW_VERSION
+#define FW_VERSION "2020_05_16"
+#endif
 
 extern SI4463_Chip* G_SI4463;
 
