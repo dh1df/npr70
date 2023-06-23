@@ -130,6 +130,7 @@ W5500_tcp_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 	if (p == NULL) {
 		tcp_close(tpcb);
 		c->conn=NULL;
+		c->closing=1;
 		return ERR_ABRT;
 	} else {
 		if (p->len && p->payload) {
@@ -219,7 +220,11 @@ W5500_read_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char bl
 
 	switch(W5500_addr) {
 	case W5500_Sn_SR:
-		return c->conn?W5500_SOCK_ESTABLISHED:W5500_SOCK_CLOSED;
+		if (c->conn)
+			return W5500_SOCK_ESTABLISHED;
+		if (c->closing)	
+			return W5500_SOCK_WAIT;
+		return W5500_SOCK_CLOSED;
 	}
 	return 0;
 }
@@ -237,8 +242,11 @@ W5500_write_byte(W5500_chip* SPI_p_loc, unsigned int W5500_addr, unsigned char b
 		break;
 	case W5500_Sn_CR:
 		if (data == 8 || data == 0x10) {
-			tcp_close(c->conn);
-			c->conn=NULL;
+			if (c->conn) {
+				tcp_close(c->conn);
+				c->conn=NULL;
+			}
+			c->closing=0;
 		}
 		break;
 	}

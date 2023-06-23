@@ -10,6 +10,7 @@ extern struct W5500_channel {
 	struct udp_pcb *udp;
 	struct tcp_pcb *conn;
 	struct pbuf *pbuf;
+	int closing;
 } W5500_channelx[NR_SOCKETS];
 
 struct pbuf *W5500_dequeue(struct W5500_channel *c);
