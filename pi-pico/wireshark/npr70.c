@@ -20,6 +20,7 @@
 #include <epan/etypes.h>
 #include <epan/proto_data.h>
 #include <epan/reassemble.h>
+#include <epan/expert.h>
 #include "fec.h"
 
 #ifndef VERSION
@@ -31,12 +32,17 @@ WS_DLL_PUBLIC_DEF const int plugin_want_major = WIRESHARK_VERSION_MAJOR;
 WS_DLL_PUBLIC_DEF const int plugin_want_minor = WIRESHARK_VERSION_MINOR;
 WS_DLL_PUBLIC void plugin_register(void);
 
-wmem_tree_t *npr70_fragments;
+wmem_tree_t *npr70_hf_fragments;
+wmem_tree_t *npr70_data_fragments;
+
 void proto_register_npr70(void);
 void proto_reg_handoff_npr70(void);
 static int dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_);
 
 static dissector_handle_t ip_handle;
+static int npr70_last_seq = -1;
+
+static expert_field ei_packet_missing = EI_INIT;
 
 int proto_npr70 = -1;
 int proto_npr70fec = -1;
@@ -89,40 +95,78 @@ static dissector_handle_t npr70fec_handle;
 static reassembly_table npr70_reassembly_table;
 static reassembly_table ip_reassembly_table;
 static int reassembly_id;
+static int data_reassembly_id;
 static int npr70_len;
 static int fragments_size;
 
-static gint hf_mp_fragments = -1;
-static gint hf_mp_fragment = -1;
-static gint hf_mp_fragment_overlap = -1;
-static gint hf_mp_fragment_overlap_conflicts = -1;
-static gint hf_mp_fragment_multiple_tails = -1;
-static gint hf_mp_fragment_too_long_fragment = -1;
-static gint hf_mp_fragment_error = -1;
-static gint hf_mp_fragment_count = -1;
-static gint hf_mp_reassembled_in = -1;
-static gint hf_mp_reassembled_length = -1;
+static gint hf_hf_fragments = -1;
+static gint hf_hf_fragment = -1;
+static gint hf_hf_fragment_overlap = -1;
+static gint hf_hf_fragment_overlap_conflicts = -1;
+static gint hf_hf_fragment_multiple_tails = -1;
+static gint hf_hf_fragment_too_long_fragment = -1;
+static gint hf_hf_fragment_error = -1;
+static gint hf_hf_fragment_count = -1;
+static gint hf_hf_reassembled_in = -1;
+static gint hf_hf_reassembled_length = -1;
 
-static gint ett_mp_fragment = -1;
-static gint ett_mp_fragments = -1;
+static gint ett_hf_fragment = -1;
+static gint ett_hf_fragments = -1;
 
-static const fragment_items mp_frag_items = {
+static const fragment_items hf_frag_items = {
     /* Fragment subtrees */
-    &ett_mp_fragment,
-    &ett_mp_fragments,
+    &ett_hf_fragment,
+    &ett_hf_fragments,
     /* Fragment fields */
-    &hf_mp_fragments,
-    &hf_mp_fragment,
-    &hf_mp_fragment_overlap,
-    &hf_mp_fragment_overlap_conflicts,
-    &hf_mp_fragment_multiple_tails,
-    &hf_mp_fragment_too_long_fragment,
-    &hf_mp_fragment_error,
-    &hf_mp_fragment_count,
+    &hf_hf_fragments,
+    &hf_hf_fragment,
+    &hf_hf_fragment_overlap,
+    &hf_hf_fragment_overlap_conflicts,
+    &hf_hf_fragment_multiple_tails,
+    &hf_hf_fragment_too_long_fragment,
+    &hf_hf_fragment_error,
+    &hf_hf_fragment_count,
     /* Reassembled in field */
-    &hf_mp_reassembled_in,
+    &hf_hf_reassembled_in,
     /* Reassembled length field */
-    &hf_mp_reassembled_length,
+    &hf_hf_reassembled_length,
+    /* Reassembled data field */
+    NULL,
+    /* Tag */
+    "Message fragments"
+};
+
+static gint hf_data_fragments = -1;
+static gint hf_data_fragment = -1;
+static gint hf_data_fragment_overlap = -1;
+static gint hf_data_fragment_overlap_conflicts = -1;
+static gint hf_data_fragment_multiple_tails = -1;
+static gint hf_data_fragment_too_long_fragment = -1;
+static gint hf_data_fragment_error = -1;
+static gint hf_data_fragment_count = -1;
+static gint hf_data_reassembled_in = -1;
+static gint hf_data_reassembled_length = -1;
+
+static gint ett_data_fragment = -1;
+static gint ett_data_fragments = -1;
+
+static const fragment_items data_frag_items = {
+    /* Fragment subtrees */
+    &ett_data_fragment,
+    &ett_data_fragments,
+    /* Fragment fields */
+    &hf_data_fragments,
+    &hf_data_fragment,
+    &hf_data_fragment_overlap,
+    &hf_data_fragment_overlap_conflicts,
+    &hf_data_fragment_multiple_tails,
+    &hf_data_fragment_too_long_fragment,
+    &hf_data_fragment_error,
+    &hf_data_fragment_count,
+    /* Reassembled in field */
+    &hf_data_reassembled_in,
+    /* Reassembled length field */
+    &hf_data_reassembled_length,
     /* Reassembled data field */
     NULL,
     /* Tag */
@@ -164,8 +208,9 @@ static int
 dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
   int         offset = 0;
-  int         remaining;
-  guint8      npr70_type;
+  int         remaining,missing;
+  guint8      npr70_type,npr70_seq;
+  proto_item *e;
   proto_tree *ti;
   proto_tree *npr70_tree;
   tvbuff_t   *next_tvb;
@@ -189,8 +234,14 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
   col_add_str(pinfo->cinfo, COL_INFO, val_to_str(npr70_type, npr70_type_vals, "Unknown Type (0x%02X)"));
   offset++;
 
-  proto_tree_add_item(npr70_tree, hf_npr70_seq, tvb, offset, 1, ENC_NA);
+  npr70_seq = tvb_get_guint8(tvb, offset);
   offset+=1;
+  e = proto_tree_add_uint(npr70_tree, hf_npr70_seq, tvb, offset, 1, npr70_seq);
+  missing=npr70_last_seq != -1 ? (npr70_seq-(npr70_last_seq+1))%256:0;
+  npr70_last_seq=npr70_seq;
+  if (missing)
+    expert_add_info_format(pinfo, e, &ei_packet_missing, "%d Packets missing",missing);
+  
 
   proto_tree_add_item(npr70_tree, hf_npr70_us, tvb, offset, 4, ENC_LITTLE_ENDIAN);
   offset+=4;
@@ -218,13 +269,13 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
   remaining=tvb_captured_length_remaining(tvb, offset);
   if (!pinfo->fd->visited) {
     gboolean more=fragments_size+remaining < npr70_len;
-    wmem_tree_insert32(npr70_fragments, pinfo->num, (void *)(long)reassembly_id);
+    wmem_tree_insert32(npr70_hf_fragments, pinfo->num, (void *)(long)reassembly_id);
     frag_msg = fragment_add(&npr70_reassembly_table, tvb, offset, pinfo, reassembly_id, NULL, fragments_size, remaining, more);
   }
-  frag_msg = fragment_get(&npr70_reassembly_table, pinfo, (int)(long)wmem_tree_lookup32(npr70_fragments, pinfo->num), NULL);
+  frag_msg = fragment_get(&npr70_reassembly_table, pinfo, (int)(long)wmem_tree_lookup32(npr70_hf_fragments, pinfo->num), NULL);
   fragments_size += remaining;
   if (frag_msg) {
-    next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Message", frag_msg, &mp_frag_items, NULL, NULL);
+    next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Message", frag_msg, &hf_frag_items, NULL, NULL);
     if (next_tvb) {
       guchar *fec_buffer = (guchar*)wmem_alloc(pinfo->pool, npr70_len);
       const unsigned char *buf = tvb_get_ptr(next_tvb, 0, -1);
@@ -234,7 +285,7 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
       if (len) {
         next_tvb = tvb_new_child_real_data(next_tvb, fec_buffer, len, len);
         proto_item *frag_tree_item;
-        show_fragment_tree(frag_msg, &mp_frag_items, tree, pinfo, next_tvb, &frag_tree_item);
+        show_fragment_tree(frag_msg, &hf_frag_items, tree, pinfo, next_tvb, &frag_tree_item);
         add_new_data_source(pinfo, next_tvb, "FECed Message");
         dissect_npr70fec(next_tvb, pinfo, tree, NULL);
       }
@@ -391,9 +442,10 @@ static int
 dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
   int         offset = 0;
-  guint8      npr70_seg, npr70_protocol, id;
+  guint8      npr70_seg, npr70_protocol, id, npr70_pkt_counter, npr70_seg_counter, npr70_is_last_seg;
   proto_tree *ti;
   proto_tree *npr70_tree;
+  fragment_head *frag_msg;
 
   col_set_str(pinfo->cinfo, COL_PROTOCOL, "NPR70 FEC");
   col_clear(pinfo->cinfo, COL_INFO);
@@ -416,12 +468,30 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   case 2:
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "IP");
     npr70_seg = tvb_get_guint8(tvb, offset);
-    proto_tree_add_uint(npr70_tree, hf_npr70_pkt_counter, tvb, offset, 1, (npr70_seg & 0xf0) >> 4);
-    proto_tree_add_uint(npr70_tree, hf_npr70_is_last_seg, tvb, offset, 1, (npr70_seg & 0x08) >> 3);
-    proto_tree_add_uint(npr70_tree, hf_npr70_seg_counter, tvb, offset, 1, npr70_seg & 0x07);
+    npr70_pkt_counter=(npr70_seg & 0xf0) >> 4;
+    npr70_is_last_seg=(npr70_seg & 0x08) >> 3;
+    npr70_seg_counter=npr70_seg & 0x07;
+    proto_tree_add_uint(npr70_tree, hf_npr70_pkt_counter, tvb, offset, 1, npr70_pkt_counter);
+    proto_tree_add_uint(npr70_tree, hf_npr70_is_last_seg, tvb, offset, 1, npr70_is_last_seg);
+    proto_tree_add_uint(npr70_tree, hf_npr70_seg_counter, tvb, offset, 1, npr70_seg_counter);
     offset++;
-    tvbuff_t *next_tvb = tvb_new_subset_remaining(tvb, offset);
-    call_dissector(ip_handle, next_tvb, pinfo, tree);
+    if (!pinfo->fd->visited) {
+      if (!npr70_seg_counter)
+        data_reassembly_id=pinfo->num;
+      printf("%d %d\n",pinfo->num,data_reassembly_id);
+      wmem_tree_insert32(npr70_data_fragments, pinfo->num, (void *)(long)data_reassembly_id);
+      fragment_add_seq(&ip_reassembly_table, tvb, offset, pinfo, reassembly_id, NULL, npr70_seg_counter, tvb_captured_length_remaining(tvb, offset), !npr70_is_last_seg, 0);
+    }
+    frag_msg = fragment_get(&ip_reassembly_table, pinfo,  (int)(long)wmem_tree_lookup32(npr70_data_fragments, pinfo->num), NULL);
+    if (frag_msg) {
+      tvbuff_t *next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Message", frag_msg, &data_frag_items, NULL, NULL);
+      if (next_tvb) {
+        proto_item *frag_tree_item;
+        show_fragment_tree(frag_msg, &data_frag_items, tree, pinfo, next_tvb, &frag_tree_item);
+        add_new_data_source(pinfo, next_tvb, "Assembled Message");
+        call_dissector(ip_handle, next_tvb, pinfo, tree);
+      }
+    }
     break;
   case 0x1e:
     col_add_fstr(pinfo->cinfo, COL_INFO, "SIGNAL %d",id);
@@ -479,43 +549,51 @@ proto_register_npr70(void)
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
-     { &hf_mp_fragments,
-            {"Message fragments", "mp.fragments", FT_NONE, BASE_NONE,
+     { &hf_hf_fragments,
+            {"Message fragments", "hf.fragments", FT_NONE, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment,
-          {"Message fragment", "mp.fragment", FT_FRAMENUM, BASE_NONE,
+      { &hf_hf_fragment,
+          {"Message fragment", "hf.fragment", FT_FRAMENUM, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_overlap,
-          {"Message fragment overlap", "mp.fragment.overlap",
+      { &hf_hf_fragment_overlap,
+          {"Message fragment overlap", "hf.fragment.overlap",
                 FT_BOOLEAN, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_overlap_conflicts,
-          {"Message fragment overlapping with conflicting data", "mp.fragment.overlap.conflicts",
+      { &hf_hf_fragment_overlap_conflicts,
+          {"Message fragment overlapping with conflicting data", "hf.fragment.overlap.conflicts",
                 FT_BOOLEAN, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_multiple_tails,
-          {"Message has multiple tail fragments", "mp.fragment.multiple_tails",
+      { &hf_hf_fragment_multiple_tails,
+          {"Message has multiple tail fragments", "hf.fragment.multiple_tails",
                 FT_BOOLEAN, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_too_long_fragment,
-          {"Message fragment too long", "mp.fragment.too_long_fragment",
+      { &hf_hf_fragment_too_long_fragment,
+          {"Message fragment too long", "hf.fragment.too_long_fragment",
                 FT_BOOLEAN, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_error,
-          {"Message defragmentation error", "mp.fragment.error",
+      { &hf_hf_fragment_error,
+          {"Message defragmentation error", "hf.fragment.error",
                 FT_FRAMENUM, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_fragment_count,
-          {"Message fragment count", "mp.fragment.count", FT_UINT32, BASE_DEC,
+      { &hf_hf_fragment_count,
+          {"Message fragment count", "hf.fragment.count", FT_UINT32, BASE_DEC,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_reassembled_in,
-          {"Reassembled in", "mp.reassembled.in", FT_FRAMENUM, BASE_NONE,
+      { &hf_hf_reassembled_in,
+          {"Reassembled in", "hf.reassembled.in", FT_FRAMENUM, BASE_NONE,
                 NULL, 0x00, NULL, HFILL }},
-      { &hf_mp_reassembled_length,
-          {"Reassembled length", "mp.reassembled.length", FT_UINT32, BASE_DEC,
+      { &hf_hf_reassembled_length,
+          {"Reassembled length", "hf.reassembled.length", FT_UINT32, BASE_DEC,
                 NULL, 0x00, NULL, HFILL }}
 
   };
+
+  static ei_register_info ei[] = {
+      {
+         &ei_packet_missing,
+         { "npr70.packet_missing", PI_PROTOCOL, PI_WARN, "Missing Packet(s)", EXPFILL }
+      },
+  };
+
   static hf_register_info hffec[] = {
     { &hf_npr70_client, {
         "Client", "npr70.client",
@@ -652,13 +730,51 @@ proto_register_npr70(void)
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
+     { &hf_data_fragments,
+            {"Message fragments", "data.fragments", FT_NONE, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment,
+          {"Message fragment", "data.fragment", FT_FRAMENUM, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_overlap,
+          {"Message fragment overlap", "data.fragment.overlap",
+                FT_BOOLEAN, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_overlap_conflicts,
+          {"Message fragment overlapping with conflicting data", "data.fragment.overlap.conflicts",
+                FT_BOOLEAN, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_multiple_tails,
+          {"Message has multiple tail fragments", "data.fragment.multiple_tails",
+                FT_BOOLEAN, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_too_long_fragment,
+          {"Message fragment too long", "data.fragment.too_long_fragment",
+                FT_BOOLEAN, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_error,
+          {"Message defragmentation error", "data.fragment.error",
+                FT_FRAMENUM, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_fragment_count,
+          {"Message fragment count", "data.fragment.count", FT_UINT32, BASE_DEC,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_reassembled_in,
+          {"Reassembled in", "data.reassembled.in", FT_FRAMENUM, BASE_NONE,
+                NULL, 0x00, NULL, HFILL }},
+      { &hf_data_reassembled_length,
+          {"Reassembled length", "data.reassembled.length", FT_UINT32, BASE_DEC,
+                NULL, 0x00, NULL, HFILL }}
+
   };
 
   static gint *ett[] = {
     &ett_npr70,
     &ett_npr70fe,
-    &ett_mp_fragment,
-    &ett_mp_fragments
+    &ett_hf_fragment,
+    &ett_hf_fragments,
+    &ett_data_fragment,
+    &ett_data_fragments
   };
 
   proto_npr70 = proto_register_protocol("New Packet Radio 70", "NPR70", "npr70");
@@ -666,13 +782,17 @@ proto_register_npr70(void)
   npr70_handle = register_dissector("npr70", dissect_npr70, proto_npr70);
   npr70fec_handle = register_dissector("npr70fec", dissect_npr70fec, proto_npr70fec);
 
+  expert_module_t *expert_npr70 = expert_register_protocol(proto_npr70);
+  expert_register_field_array(expert_npr70, ei, array_length(ei));
+
   proto_register_field_array(proto_npr70, hf, array_length(hf));
   proto_register_field_array(proto_npr70fec, hffec, array_length(hffec));
   proto_register_subtree_array(ett, array_length(ett));
 
   reassembly_table_register(&npr70_reassembly_table, &addresses_ports_reassembly_table_functions);
   reassembly_table_register(&ip_reassembly_table, &addresses_ports_reassembly_table_functions);
-  npr70_fragments = wmem_tree_new(wmem_epan_scope());
+  npr70_hf_fragments = wmem_tree_new(wmem_epan_scope());
+  npr70_data_fragments = wmem_tree_new(wmem_epan_scope());
 
 }
 
