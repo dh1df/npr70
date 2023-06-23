@@ -409,7 +409,7 @@ static int HMI_cmd_display(struct context *c)
 static int HMI_cmd_version(struct context *c)
 {
 	HMI_cprintf(c,"firmware: %s\r\nfreq band: %s\r\n", FW_VERSION, FREQ_BAND);
-	return 1;
+	return RET_PROMPT;
 }
 
 static int HMI_cmd_reset_to_default(struct context *c)
@@ -437,20 +437,20 @@ int HMI_exec(struct context *c)
 	char *loc_command_str = c->cmd;
 	int command_understood=HMI_command_parse(&ctx, loc_command_str, commands, sizeof(commands)/sizeof(commands[0]), 1);
 	c->ret = command_understood;
-	if (command_understood == 4 || command_understood == 5) { /* 4=Call again slow, 5=Call again fast */
+	if (command_understood == RET_POLL_SLOW || command_understood == RET_POLL_FAST) { /* 4=Call again slow, 5=Call again fast */
 		echo_ON = 0;
 		return command_understood;
 	}
-	if (command_understood == 3) { /* 3=Understood with OK and prompt */
+	if (command_understood == RET_OK_PROMPT) { /* 3=Understood with OK and prompt */
 		HMI_cprintf(c, "OK\r\n");
 	}
-	if (command_understood == 0) { /* 0=Not undestood */
+	if (command_understood == RET_UNKNOWN) { /* 0=Not undestood */
 		HMI_cprintf(c, "unknown command, use help for help\r\n");
 	}
-	if (command_understood < 0) { /* < 0=Error */
+	if (command_understood <= RET_ERROR) { /* < 0=Error */
 		HMI_cprintf(c, "ERR %d\r\n",command_understood);
 	}
-	if (command_understood >= 2 || command_understood <= 0) { /* 2=Understood with prompt */
+	if (command_understood >= RET_PROMPT || command_understood <= RET_ERROR) { /* 2=Understood with prompt */
 		HMI_prompt(c);
 	}
 	/* 1=Understood */

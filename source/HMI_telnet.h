@@ -40,6 +40,16 @@ struct context {
   void *async_data;
 };
 
+enum retcode {
+  RET_ERROR=-1,
+  RET_UNKNOWN=0,
+  RET_OK=1,
+  RET_PROMPT=2,
+  RET_OK_PROMPT=3,
+  RET_POLL_SLOW=4,
+  RET_POLL_FAST=5,
+};
+
 struct command {
   const char *cmd;
   int (*func)(struct context *ctx);
