@@ -36,6 +36,25 @@ static unsigned char my_multiframe_ID;
 //static unsigned int TDMA_slave_last_master_top = 0;
 static unsigned int TDMA_offset_multi_frame;
 
+unsigned char parity_bit_check(unsigned char parity)
+{
+	parity^=(parity>>4);
+	parity^=(parity>>2);
+	parity^=(parity>>1);
+	parity^=1;
+	parity&=1;
+	return parity;
+}
+
+unsigned char parity_bit_elab(unsigned char parity)
+{
+	parity^=(parity<<4);
+	parity^=(parity<<2);
+	parity^=(parity<<1);
+	parity&=0x80;
+	return parity;
+}
+
 void TDMA_init_all(void) {
 	int i;
 	for (i=0; i<radio_addr_table_size; i++) {
@@ -68,7 +87,7 @@ unsigned char TDMA_byte_elaboration(unsigned char synchro) {
 	if (synchro) {
 		TDMA_byte = TDMA_byte + 0x20;
 	}
-	TDMA_byte = TDMA_byte + parity_bit_elab[TDMA_byte & 0x7F]; // parity bit
+	TDMA_byte = TDMA_byte + parity_bit_elab(TDMA_byte & 0x7F); // parity bit
 	return TDMA_byte;
 }
 
@@ -80,7 +99,7 @@ short int TDMA_TA_measure_single_frame(unsigned int frame_timer, unsigned char T
 	
 	is_downlink = TDMA_byte & 0x40; 
 	
-	if ( ((TDMA_byte & 0x20) == 0x20) && (is_downlink == 0) && (parity_bit_check[TDMA_byte]) && (parity_bit_check[client_byte]) ) { //first frame top-synchro
+	if ( ((TDMA_byte & 0x20) == 0x20) && (is_downlink == 0) && (parity_bit_check(TDMA_byte)) && (parity_bit_check(client_byte)) ) { //first frame top-synchro
 		client_ID = client_byte & 0x7F;
 		if (CONF_master_FDD == 1) {
 			measured_offset = frame_timer;
@@ -133,12 +152,12 @@ void TDMA_byte_RX_interp (unsigned char TDMA_byte, unsigned char client_ID_byte,
 	TDMA_synchro = TDMA_byte & 0x20;
 	is_downlink = TDMA_byte & 0x40;
 	client_ID = client_ID_byte & 0x7F;
-	if (parity_bit_check[TDMA_byte]) { // checks parity bit
+	if (parity_bit_check(TDMA_byte)) { // checks parity bit
 	//if(1) {
 		if (is_TDMA_master) { // TDMA Master
 			if (is_downlink == 0) { //only uplink frames
 				uplink_buffer_size = TDMA_byte & 0x1F;
-				if ( (client_ID < radio_addr_table_size) && (parity_bit_check[client_ID_byte]) ) {
+				if ( (client_ID < radio_addr_table_size) && (parity_bit_check(client_ID_byte)) ) {
 					TDMA_table_uplink_st[client_ID] = uplink_buffer_size;
 					TDMA_table_up2date[client_ID] = 1;
 					if (uplink_buffer_size > 1) { // force to fast slots
@@ -403,7 +422,7 @@ void TDMA_NULL_frame_init(int size) {
 	unsigned char null_frame[260];
 	int size_wo_FEC, size_w_FEC; 
 	unsigned char rframe_length;
-	null_frame[0] = my_radio_client_ID + parity_bit_elab[my_radio_client_ID]; // address = client
+	null_frame[0] = my_radio_client_ID + parity_bit_elab(my_radio_client_ID); // address = client
 	null_frame[1] = 0x00; // protocol = NULL frame
 	//size_wo_FEC = 70;
 	size_wo_FEC = size;

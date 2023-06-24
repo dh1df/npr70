@@ -448,7 +448,7 @@ void segment_and_push (unsigned char* data_unsegmented, int total_size, unsigned
 				rframe_TX[2] = 0x01; //TDMA byte
 				
 				segmenter_byte = (packet_counter & 0x0F) * 0x10 + is_last_segment + (segment_counter & 0x07);
-				data_wo_FEC[0] = client_addr + parity_bit_elab[(client_addr&0x7F)]; //client address
+				data_wo_FEC[0] = client_addr + parity_bit_elab(client_addr&0x7F); //client address
 				data_wo_FEC[1] = protocol; //protocol : raw ethernet
 				data_wo_FEC[2] = segmenter_byte; // segmenter byte
 				memcpy(data_wo_FEC+3, (data_unsegmented + size_sent), size_to_send); 
@@ -741,7 +741,7 @@ void radio_save_RSSI_BER (unsigned char client_byte, unsigned char is_downlink, 
 	unsigned char client_ID = 0xF0;
 	client_ID = client_byte & 0x7F;
 	
-	if ( (is_TDMA_master) && (is_downlink == 0) && (parity_bit_check[client_byte]) && (client_ID < radio_addr_table_size) ) {
+	if ( (is_TDMA_master) && (is_downlink == 0) && (parity_bit_check(client_byte)) && (client_ID < radio_addr_table_size) ) {
 		G_radio_addr_table_RSSI[client_ID] = (26 * RSSI_loc) + (0.9 * G_radio_addr_table_RSSI[client_ID]);
 		G_radio_addr_table_BER[client_ID] = (1250 * micro_BER) + (0.9 * G_radio_addr_table_BER[client_ID]);
 		

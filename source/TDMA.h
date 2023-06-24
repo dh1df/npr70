@@ -18,6 +18,10 @@
 #ifndef TDMA_F4
 #define TDMA_F4
 
+unsigned char parity_bit_check(unsigned char parity);
+
+unsigned char parity_bit_elab(unsigned char parity);
+
 void TDMA_init_all(void);
 
 unsigned char TDMA_byte_elaboration(unsigned char synchro);

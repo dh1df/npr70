@@ -201,7 +201,4 @@ extern int G_uplink_bandwidth_temp;
 
 extern int super_debug;
 
-extern unsigned char parity_bit_elab[128];
-extern unsigned char parity_bit_check[256];
-
 #endif

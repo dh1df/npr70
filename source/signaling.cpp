@@ -421,7 +421,7 @@ void signaling_frame_init(void) {
 	if (is_TDMA_master) {
 		TX_signal_frame_raw[0] = 0xFF; //broadcast address (plus parity bit)
 	} else {
-		TX_signal_frame_raw[0] = my_radio_client_ID + parity_bit_elab[(my_radio_client_ID & 0x7F)]; //addr slave
+		TX_signal_frame_raw[0] = my_radio_client_ID + parity_bit_elab(my_radio_client_ID & 0x7F); //addr slave
 	}
 	TX_signal_frame_raw[1] = 0x1E; // protocol = signaling
 	TX_signal_frame_point = 2;
