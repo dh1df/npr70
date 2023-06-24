@@ -1,4 +1,6 @@
 # New Packet Radio
+   This is a port of NPR-70 modem to raspberry pi pico. See [pi-pico/README.md](pi-pico/README.md)
+   Original README.md from Ed below:
 
    This is the source code for the NPR-70 modem firmware by F4HDK.
 
