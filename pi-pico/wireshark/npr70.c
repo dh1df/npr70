@@ -52,9 +52,14 @@ static int hf_npr70_us = -1;
 static int hf_npr70_timestamp = -1;
 static int hf_npr70_rssi = -1;
 static int hf_npr70_len = -1;
-static int hf_npr70_tdma = -1;
+static int hf_npr70_tdma_parity = -1;
+static int hf_npr70_tdma_downlink = -1;
+static int hf_npr70_tdma_synchro = -1;
+static int hf_npr70_tdma_frame_counter = -1;
+static int hf_npr70_tdma_uplink_buffer = -1;
 static int hf_npr70_errors = -1;
-static int hf_npr70_client = -1;
+static int hf_npr70_client_parity = -1;
+static int hf_npr70_client_id = -1;
 static int hf_npr70_proto = -1;
 static int hf_npr70_signal = -1;
 static int hf_npr70_slen = -1;
@@ -209,7 +214,7 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
 {
   int         offset = 0;
   int         remaining,missing;
-  guint8      npr70_type,npr70_seq;
+  guint8      npr70_type,npr70_seq,npr70_tdma;
   proto_item *e;
   proto_tree *ti;
   proto_tree *npr70_tree;
@@ -235,8 +240,8 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
   offset++;
 
   npr70_seq = tvb_get_guint8(tvb, offset);
-  offset+=1;
   e = proto_tree_add_uint(npr70_tree, hf_npr70_seq, tvb, offset, 1, npr70_seq);
+  offset+=1;
   missing=npr70_last_seq != -1 ? (npr70_seq-(npr70_last_seq+1))%256:0;
   npr70_last_seq=npr70_seq;
   if (missing)
@@ -259,9 +264,15 @@ dissect_npr70(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
     proto_tree_add_uint(npr70_tree, hf_npr70_len, tvb, offset, 1, npr70_len);
     offset+=1;
 
-    proto_tree_add_item(npr70_tree, hf_npr70_tdma, tvb, offset, 1, ENC_NA);
+    npr70_tdma = tvb_get_guint8(tvb, offset);
+    proto_tree_add_boolean(npr70_tree, hf_npr70_tdma_parity, tvb, offset, 1, npr70_tdma & 0x80);
+    proto_tree_add_boolean(npr70_tree, hf_npr70_tdma_downlink, tvb, offset, 1, npr70_tdma & 0x40);
+    proto_tree_add_boolean(npr70_tree, hf_npr70_tdma_synchro, tvb, offset, 1, npr70_tdma & 0x20);
+    if (npr70_tdma & 0x40)
+      proto_tree_add_uint(npr70_tree, hf_npr70_tdma_frame_counter, tvb, offset, 1, npr70_tdma & 0x1f);
+    else
+      proto_tree_add_uint(npr70_tree, hf_npr70_tdma_uplink_buffer, tvb, offset, 1, npr70_tdma & 0x1f);
     offset+=1;
-
     fragments_size = 0;
     reassembly_id=pinfo->num;
     npr70_len--;
@@ -453,8 +464,9 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   ti = proto_tree_add_item(tree, proto_npr70fec, tvb, 0, -1, ENC_NA);
   npr70_tree = proto_item_add_subtree(ti, ett_npr70fe);
 
-  proto_tree_add_item(npr70_tree, hf_npr70_client, tvb, offset, 1, ENC_NA);
   id = tvb_get_guint8(tvb, offset);
+  proto_tree_add_boolean(npr70_tree, hf_npr70_client_parity, tvb, offset, 1, id & 0x80);
+  proto_tree_add_uint(npr70_tree, hf_npr70_client_id, tvb, offset, 1, id & 0x7f);
   offset++;
 
   proto_tree_add_item(npr70_tree, hf_npr70_proto, tvb, offset, 1, ENC_NA);
@@ -478,18 +490,21 @@ dissect_npr70fec(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
     if (!pinfo->fd->visited) {
       if (!npr70_seg_counter)
         data_reassembly_id=pinfo->num;
+#if 0
       printf("%d %d\n",pinfo->num,data_reassembly_id);
+#endif
       wmem_tree_insert32(npr70_data_fragments, pinfo->num, (void *)(long)data_reassembly_id);
-      fragment_add_seq(&ip_reassembly_table, tvb, offset, pinfo, reassembly_id, NULL, npr70_seg_counter, tvb_captured_length_remaining(tvb, offset), !npr70_is_last_seg, 0);
+      fragment_add_seq(&ip_reassembly_table, tvb, offset, pinfo, data_reassembly_id, NULL, npr70_seg_counter, tvb_captured_length_remaining(tvb, offset), !npr70_is_last_seg, 0);
     }
     frag_msg = fragment_get(&ip_reassembly_table, pinfo,  (int)(long)wmem_tree_lookup32(npr70_data_fragments, pinfo->num), NULL);
     if (frag_msg) {
-      tvbuff_t *next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Message", frag_msg, &data_frag_items, NULL, NULL);
+      tvbuff_t *next_tvb = process_reassembled_data(tvb, 0, pinfo, "Reassembled Data", frag_msg, &data_frag_items, NULL, NULL);
       if (next_tvb) {
         proto_item *frag_tree_item;
         show_fragment_tree(frag_msg, &data_frag_items, tree, pinfo, next_tvb, &frag_tree_item);
-        add_new_data_source(pinfo, next_tvb, "Assembled Message");
         call_dissector(ip_handle, next_tvb, pinfo, tree);
+      } else {
+        col_append_fstr(pinfo->cinfo, COL_INFO, "(Data reassembled in packet %u)", frag_msg->reassembled_in);
       }
     }
     break;
@@ -539,9 +554,29 @@ proto_register_npr70(void)
         FT_UINT24, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
-    { &hf_npr70_tdma, {
-        "TDMA", "npr70.tdma",
-        FT_UINT8, BASE_HEX, NULL, 0x0,
+    { &hf_npr70_tdma_parity, {
+        "TDMA Parity", "npr70.tdma.parity",
+        FT_BOOLEAN, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_tdma_downlink, {
+        "TDMA Downlink", "npr70.tdma.downlink",
+        FT_BOOLEAN, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_tdma_synchro, {
+        "TDMA Synchro", "npr70.tdma.synchro",
+        FT_BOOLEAN, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_tdma_frame_counter, {
+        "TDMA Frame counter", "npr70.tdma.frame_counter",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_tdma_uplink_buffer, {
+        "TDMA Uplink Buffer", "npr70.tdma.uplink_buffer",
+        FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_errors, {
@@ -595,138 +630,143 @@ proto_register_npr70(void)
   };
 
   static hf_register_info hffec[] = {
-    { &hf_npr70_client, {
-        "Client", "npr70.client",
+    { &hf_npr70_client_parity, {
+        "Client Parity", "npr70fec.client.parity",
+        FT_BOOLEAN, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+
+    { &hf_npr70_client_id, {
+        "Client ID", "npr70fec.client.id",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_proto, {
-        "Protocol", "npr70.proto",
+        "Protocol", "npr70fec.proto",
         FT_UINT8, BASE_DEC, VALS(npr70_proto_vals), 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_signal, {
-        "Signal", "npr70.signal",
+        "Signal", "npr70fec.signal",
         FT_UINT8, BASE_DEC, VALS(npr70_signal_vals), 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_slen, {
-        "Signal_length", "npr70.slen",
+        "Signal_length", "npr70fec.slen",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_id, {
-        "Id", "npr70.id",
+        "Id", "npr70fec.id",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_mac, {
-        "MAC", "npr70.mac",
+        "MAC", "npr70fec.mac",
         FT_UINT8, BASE_HEX, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_callsign, {
-        "Callsign", "npr70.callsign",
+        "Callsign", "npr70fec.callsign",
         FT_STRING, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_ip_start, {
-        "IP Start", "npr70.ip_start",
+        "IP Start", "npr70fec.ip_start",
         FT_IPv4, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_ip_length, {
-        "IP Length", "npr70.ip_length",
+        "IP Length", "npr70fec.ip_length",
         FT_UINT32, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_static_alloc, {
-        "Static alloc", "npr70.static_alloc",
+        "Static alloc", "npr70fec.static_alloc",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_master_mac, {
-        "Master MAC", "npr70.master_mac",
+        "Master MAC", "npr70fec.master_mac",
         FT_UINT8, BASE_HEX, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_master_callsign, {
-        "Master Callsign", "npr70.master_callsign",
+        "Master Callsign", "npr70fec.master_callsign",
         FT_STRING, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_modem_ip, {
-        "Modem IP", "npr70.modem_ip",
+        "Modem IP", "npr70fec.modem_ip",
         FT_IPv4, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_subnet_mask, {
-        "Subnet Mask", "npr70.subnet_mask",
+        "Subnet Mask", "npr70fec.subnet_mask",
         FT_IPv4, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_default_route_active, {
-        "Default Route active", "npr70.default_route_active",
+        "Default Route active", "npr70fec.default_route_active",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_default_route, {
-        "Default Route", "npr70.default_route",
+        "Default Route", "npr70fec.default_route",
         FT_IPv4, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_dns_active, {
-        "DNS active", "npr70.dns_active",
+        "DNS active", "npr70fec.dns_active",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_dns, {
-        "DNS", "npr70.dns",
+        "DNS", "npr70fec.dns",
         FT_IPv4, BASE_NONE, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_pkt_counter, {
-        "Packet counter", "npr70.pkt_counter",
+        "Packet counter", "npr70fec.pkt_counter",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_is_last_seg, {
-        "Is last SEG", "npr70.is_last_seq",
+        "Is last SEG", "npr70fec.is_last_seq",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_seg_counter, {
-        "SEG counter", "npr70.seg_counter",
+        "SEG counter", "npr70fec.seg_counter",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_rssi_uplink, {
-        "RSSI Uplink", "npr70.rssi_uplink",
+        "RSSI Uplink", "npr70fec.rssi_uplink",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_ber, {
-        "BER", "npr70.berr",
+        "BER", "npr70fec.berr",
         FT_UINT16, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_ta, {
-        "Timing Advance", "npr70.ta",
+        "Timing Advance", "npr70fec.ta",
         FT_UINT16, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_tdma_offset, {
-        "TDMA Offset", "npr70.tdma_offset",
+        "TDMA Offset", "npr70fec.tdma_offset",
         FT_UINT16, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_tdma_slot_length, {
-        "TDMA Slot Length", "npr70.tdma_slot_length",
+        "TDMA Slot Length", "npr70fec.tdma_slot_length",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
     { &hf_npr70_tdma_multiframe, {
-        "TDMA Multiframe", "npr70.tdma_multiframe",
+        "TDMA Multiframe", "npr70fec.tdma_multiframe",
         FT_UINT8, BASE_DEC, NULL, 0x0,
         NULL, HFILL }},
 
