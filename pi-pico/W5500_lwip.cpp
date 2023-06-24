@@ -560,6 +560,10 @@ static int bridge_forward(struct pbuf *p, struct netif *src, struct netif *dst)
 {
 	if (src == dst)
 		return 0;
+	if (!(dst->flags & NETIF_FLAG_UP))
+		return 0;
+	if (!(dst->flags & NETIF_FLAG_LINK_UP))
+		return 0;
 	if (src == &netif_bridge && dst == &netif_radio)
 		return bridge_radio;
 	return 1;
