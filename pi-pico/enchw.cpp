@@ -60,6 +60,8 @@ void enchw_init(void)
 	struct netif *netif=&netif_eth;
 	memcpy(&enc28j60.mac_address, CONF_ethernet_MAC, 6);
 	netif = netif_add_noaddr(netif, &enc28j60, ethernetif_init, netif_input);
+	netif->flags |= NETIF_FLAG_ETHERNET;
+        netif_set_up(netif);
         netif_set_link_up(netif);
 	enc28j60_interrupts(&enc28j60, ENC28J60_PKTIE | ENC28J60_TXERIE | ENC28J60_RXERIE);
 }
