@@ -40,11 +40,6 @@ static struct pbuf *received_frame;
 /* it is suggested that the first byte is 0x02 to indicate a link-local address */
 const uint8_t tud_network_mac_address[6] = {0x02,0x02,0x84,0x6A,0x96,0x00};
 
-/* network parameters of this MCU */
-static const ip_addr_t ipaddr  = IPADDR4_INIT_BYTES(192, 168, 7, 1);
-static const ip_addr_t netmask = IPADDR4_INIT_BYTES(255, 255, 255, 0);
-static const ip_addr_t gateway = IPADDR4_INIT_BYTES(192, 168, 7, 2);
-
 static err_t linkoutput_fn(struct netif *netif, struct pbuf *p)
 {
     (void)netif;
@@ -175,4 +170,8 @@ void service_traffic(void)
     }
     
     sys_check_timeouts();
+    if (tud_ready())
+       netif_usb.flags |= NETIF_FLAG_LINK_UP;
+    else
+       netif_usb.flags &= ~NETIF_FLAG_LINK_UP;
 }
