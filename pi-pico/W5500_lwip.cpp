@@ -3,6 +3,7 @@
 #include "pico/cyw43_arch.h"
 #include "netif/etharp.h"
 #include "netif/bridgeif.h"
+#include "lwip/dns.h"
 #include "W5500_lwip.h"
 #include "tusb_lwip_glue.h"
 #include "common.h"
@@ -631,7 +632,7 @@ static err_t bridge_init_cb(struct netif *netif)
 static void
 ip_setup(int reconf)
 {
-	ip4_addr_t ipaddr,netmask,gw;
+	ip4_addr_t ipaddr,netmask,gw,dns;
 	struct netif *netif=&netif_bridge;
 	unsigned long int modem_IP;
 
@@ -648,6 +649,8 @@ ip_setup(int reconf)
 	IP_int2lwip(LAN_conf_applied.LAN_def_route, &gw);
 	netif_set_addr(netif, &ipaddr, &netmask, &gw);
 	netif_set_default(netif);
+	IP_int2lwip(LAN_conf_applied.LAN_DNS_value, &dns);
+	dns_setserver(1, &dns);
 }
 
 static void
