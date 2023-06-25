@@ -102,9 +102,9 @@ enum retcode cmd_flash(struct context *ctx)
 			return ret;
 		if (ctx->interrupt)
 			return ret;
+		filename=strrchr(filename,'/');
+		if (!filename)
+			return LFS_ERR_INVAL;
 	}
-	filename=strrchr(filename,'/');
-	if (!filename)
-		return LFS_ERR_INVAL;
 	return cmd_flash_do(ctx, filename+1);
 }
