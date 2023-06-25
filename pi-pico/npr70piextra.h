@@ -40,6 +40,9 @@
 #define CMD_TRACE\
         {"trace",cmd_trace},
 
+#define CMD_UPTIME\
+        {"uptime",cmd_uptime},
+
 #define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER CMD_PING CMD_TRACE
 #define CUSTOM_DISPLAY_COMMANDS {"net",cmd_display_net},
 
@@ -60,6 +63,7 @@ int cmd_xdisplay(struct context *c);
 int cmd_bootloader(struct context *c);
 int cmd_ping(struct context *c);
 int cmd_trace(struct context *c);
+int cmd_uptime(struct context *c);
 void virt_EEPROM_errase_all(void);
 #if 0
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);
@@ -74,3 +78,7 @@ void ext_SRAM_write2(void* loc_SPI, unsigned char* loc_data, unsigned int addres
 #define TRACE_TX_RADIO trace_tx_radio
 extern void trace_rx_radio(unsigned int us, int initial, unsigned char *data, int mask, int offset, int len);
 extern void trace_tx_radio(unsigned int us, int initial, unsigned char *data, int len);
+
+#define LWIP_ERR(x) ((enum retcode)(-((x)+30)))
+#define LFS_ERR(x) ((enum retcode)(x))
+#define HTTPC_ERR(x) ((enum retcode)(-((x)+50)))

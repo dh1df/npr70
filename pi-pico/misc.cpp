@@ -243,3 +243,14 @@ cmd_bootloader(struct context *c)
         call_bootloader();
 	return 3;
 }
+
+int
+cmd_uptime(struct context *c)
+{
+	uint32_t s=time_us_64()/1000000;
+	uint32_t m=(s/60)%60;
+	uint32_t h=(s/3600)%60;
+	uint32_t d=s/3600/24;
+	HMI_cprintf(c,"%d days %d:%d:%d\r\n",d,h,m,s%60);
+	return 2;
+}

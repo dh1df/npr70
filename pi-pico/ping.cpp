@@ -14,7 +14,7 @@ static int cmd_ping_size=32;
 static int cmd_ping_id=0xbeef;
 
 struct ping_context {
-	int done;
+	enum retcode done;
 	struct raw_pcb *pcb;
 	uint16_t seq_num;
 	struct context *ctx;
@@ -22,7 +22,7 @@ struct ping_context {
 	int start;
 } cmd_ping_context;
 
-static void cmd_ping_exit(struct ping_context *pctx, int ret)
+static void cmd_ping_exit(struct ping_context *pctx, enum retcode ret)
 {
 	// debug("raw_remove %p %p\r\n",pctx, pctx->pcb);
 	raw_remove(pctx->pcb);
@@ -50,7 +50,7 @@ static u8_t cmd_ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const 
 		float delta=(GLOBAL_timer.read_us()-pctx->start)/1000.0;
 		if (icmp_echo-> id == cmd_ping_id)
 			HMI_cprintf(pctx->ctx, "%d bytes from %s: icmp_seq=%d ttl=%d time=%.3f\r\n", len, ipaddr_ntoa(addr), lwip_ntohs(icmp_echo->seqno), ttl, delta);
-		cmd_ping_exit(pctx, 3);
+		cmd_ping_exit(pctx, RET_OK_PROMPT);
 		return 1;
 	}
 	return 0;
@@ -87,7 +87,7 @@ int cmd_ping(struct context *ctx)
 	err_t err=ERR_OK;
 	struct ping_context *pctx=&cmd_ping_context;
 	if (ctx->interrupt) {
-		cmd_ping_exit(pctx, 1);
+		cmd_ping_exit(pctx, RET_SILENT);
 	} else if (!ctx->poll) {
 		pctx->ctx = ctx;
 		pctx->pcb = raw_new(IP_PROTO_ICMP);
@@ -106,7 +106,7 @@ int cmd_ping(struct context *ctx)
 		if (err) {
 			cmd_ping_exit(pctx,LWIP_ERR(err));
 		} else
-			pctx->done=5;
+			pctx->done=RET_POLL_FAST;
 	}
 	return pctx->done;
 }

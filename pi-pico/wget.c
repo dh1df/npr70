@@ -9,7 +9,7 @@ static httpc_state_t *state;
 struct wget_context {
 	int fd;
 	int count;
-	int done;
+	enum retcode done;
 	u32_t content_len;
 } wget_context;
 
@@ -24,7 +24,7 @@ static err_t recv_fn(void *arg, struct altcp_pcb *conn, struct pbuf *p, err_t er
 			ctx->count=0;		
 		}
 	} else
-		HMI_cprintf(NULL,"recv_fn2 %d %d %d\r\n",p->tot_len,p->len,size);
+		HMI_cprintf(NULL,"recv_fn2 %d %d %ld\r\n",p->tot_len,p->len,size);
 	altcp_recved(conn, p->tot_len);
 	pbuf_free(p);
 	return ERR_OK;
@@ -34,7 +34,7 @@ static void wget_close(struct wget_context *ctx)
 {
 	pico_fflush(ctx->fd);
 	pico_close(ctx->fd);
-	ctx->done=3;
+	ctx->done=RET_OK_PROMPT;
 }
 
 static err_t headers_done_fn(httpc_state_t *connection, void *arg, struct pbuf *hdr, u16_t hdr_len, u32_t content_len)
@@ -51,13 +51,13 @@ void result_fn(void *arg, httpc_result_t httpc_result, u32_t rx_content_len, u32
 	debug("\r\nresult_fn httpc_result=%d err=%d len=%d srv_res=%d\r\n",httpc_result,err,rx_content_len,srv_res);
 	wget_close(ctx);
 	if (ctx->content_len != rx_content_len)
-		ctx->done = LFS_ERR_IO;
+		ctx->done = LFS_ERR(LFS_ERR_IO);
 	if (srv_res < 200 || srv_res >= 300)
-		ctx->done = LFS_ERR_NOENT;
+		ctx->done = LFS_ERR(LFS_ERR_NOENT);
 	if (httpc_result != 0)
-		ctx->done = -(httpc_result+32);
+		ctx->done = HTTPC_ERR(httpc_result);
 	if (err != 0)
-		ctx->done = -(err+32);
+		ctx->done = LWIP_ERR(err);
 }
 
 
@@ -68,7 +68,7 @@ int cmd_wget(struct context *ctx)
 	char hostbuf[128];
 	int hostlen;
 	if (ctx->interrupt) {
-		return 1;
+		return RET_SILENT;
 	}
 	if (ctx->poll) {
 		return wget_context.done;
@@ -76,26 +76,26 @@ int cmd_wget(struct context *ctx)
 	settings.result_fn = result_fn;
 	settings.headers_done_fn = headers_done_fn;
 	if (strncmp(ctx->s1,prefix,strlen(prefix)))
-		return  LFS_ERR_INVAL;
+		return  LFS_ERR(LFS_ERR_INVAL);
 	host=ctx->s1+strlen(prefix);
 	path=strchr(host,'/');
 	if (!path)
-		return LFS_ERR_INVAL;
+		return LFS_ERR(LFS_ERR_INVAL);
 	hostlen=path-host;
 	if (hostlen >= sizeof(hostbuf))
-		return LFS_ERR_NAMETOOLONG;
+		return LFS_ERR(LFS_ERR_NAMETOOLONG);
 	strncpy(hostbuf, host, hostlen);
 	hostbuf[hostlen]='\0';
 	file=strrchr(ctx->s1,'/');
 	if (!file || !strlen(file))
-		return LFS_ERR_INVAL;
+		return LFS_ERR(LFS_ERR_INVAL);
 	wget_context.fd=pico_open(file,LFS_O_WRONLY|LFS_O_CREAT|LFS_O_TRUNC);
 	if (wget_context.fd < 0)
-		return wget_context.fd;
+		return LFS_ERR(wget_context.fd);
 	wget_context.count=0;
 	wget_context.done=5;
 	err_t err=httpc_get_file_dns(hostbuf,80,path,&settings,recv_fn,&wget_context,&state);
 	if (err != ERR_OK)
-		return -(err+32);
-	return 5;
+		return LWIP_ERR(err);
+	return RET_POLL_FAST;
 }
