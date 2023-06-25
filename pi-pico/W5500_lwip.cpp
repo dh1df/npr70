@@ -642,6 +642,7 @@ ip_setup(int reconf)
 	IP_int2lwip(LAN_conf_applied.LAN_subnet_mask, &netmask);
 	IP_int2lwip(LAN_conf_applied.LAN_def_route, &gw);
 	netif_set_addr(netif, &ipaddr, &netmask, &gw);
+	netif_set_default(netif);
 }
 
 static void
