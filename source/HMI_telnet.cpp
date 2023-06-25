@@ -794,7 +794,6 @@ static enum retcode HMI_cmd_set_netmask(struct context *c)
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
 		RADIO_off_if_necessary(1);
-		return RET_OK_PROMPT;
 		LAN_conf_saved.LAN_subnet_mask = temp_uint;
 		//HMI_force_exit();
 		//W5500_re_configure();
