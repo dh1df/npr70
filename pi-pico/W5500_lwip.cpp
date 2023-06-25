@@ -24,6 +24,7 @@ static struct netif netif_radio;
 static struct netif netif_bridge;
 static struct netif *bridge_port[NUM_BRIDGE_PORTS];
 static err_t radio_output_raw_fn(struct pbuf *p);
+static int W5500_errors_nomem;
 
 static int verbose;
 static int bridge_radio;
@@ -73,8 +74,12 @@ void
 W5500_enqueue(struct W5500_channel *c, unsigned char *data, int size)
 {
 	struct pbuf *p=pbuf_alloc(PBUF_RAW, size, PBUF_POOL);
-	memcpy(p->payload, data, size);
-	W5500_enqueue_pbuf(c, p);
+	if (p) {
+		memcpy(p->payload, data, size);
+		W5500_enqueue_pbuf(c, p);
+	} else
+		W5500_errors_nomem++;
+	
 }
 
 int
