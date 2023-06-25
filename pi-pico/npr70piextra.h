@@ -91,7 +91,7 @@ extern void trace_rx_radio(unsigned int us, int initial, unsigned char *data, in
 extern void trace_tx_radio(unsigned int us, int initial, unsigned char *data, int len);
 
 #define LWIP_ERR(x) ((enum retcode)(-((x)+30)))
-#define LFS_ERR(x) ((enum retcode)(x))
+#define LFS_ERR(x) ((enum retcode)((x)-1))
 #define HTTPC_ERR(x) ((enum retcode)(-((x)+50)))
 
 #define CUSTOM_ERRORS_LFS \
@@ -139,4 +139,6 @@ extern void trace_tx_radio(unsigned int us, int initial, unsigned char *data, in
 	{HTTPC_ERR(HTTPC_RESULT_LOCAL_ABORT),  "Local abort"},\
 	{HTTPC_ERR(HTTPC_RESULT_ERR_CONTENT_LEN),  "Content length mismatch"},
 
-#define CUSTOM_ERRORS CUSTOM_ERRORS_LFS CUSTOM_ERRORS_LWIP CUSTOM_ERRORS_HTTPC
+#define CUSTOM_ERRORS \
+	{RET_ERROR, "General error"},\
+	CUSTOM_ERRORS_LFS CUSTOM_ERRORS_LWIP CUSTOM_ERRORS_HTTPC
