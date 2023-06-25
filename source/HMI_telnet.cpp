@@ -184,19 +184,90 @@ HMI_enable_echo(void)
 	echo_ON = 1;
 }
 
+static void
+HMI_telnet_recv(W5500_chip* W5500, int RX_size, uint8_t *RX_data, uint8_t *TX_data)
+{
+	char loc_char;
+	int i, j;
+
+	telnet_last_activity = GLOBAL_timer.read_us();
+	// printf("RX Size: %i\r\n", RX_size);
+	W5500_read_RX_buffer(W5500, TELNET_SOCKET, RX_data, RX_size+3);
+	// Note: RX_data starts with three extra bytes (W5500 register/block info) that are not
+	// part of the actual received data
+	RX_data[RX_size+3] = 0;
+	i = 3;
+	j = 0;
+	while (i < (RX_size+3)) {
+		loc_char = (char)RX_data[i];
+		// printf("%02X %c\r\n", loc_char, loc_char);
+		if ( (loc_char >= 0x20) && (loc_char <= 0x7E) ) {//displayable char
+			if ( (current_rx_line_count < 98) && (echo_ON) ) {
+				TX_data[j]=RX_data[i];
+				i++;
+				j++;
+				current_rx_line[current_rx_line_count] = loc_char;
+				current_rx_line_count++;
+			} else {
+				i++;
+			}
+		} 
+		else { // special char
+			if (loc_char == 0xFF) {//IAC
+				if (RX_data[i+1] == 244) {//ctrl+C
+					HMI_cancel_current(&ctx);
+				}
+				i = i + 3;
+			}
+			else if ( ( (loc_char == 0x08) || (loc_char == 0x7F) ) && (echo_ON) ) { //backspace
+				i++;
+				
+				if (current_rx_line_count>0) {
+					current_rx_line_count--;
+					TX_data[j] = 0x08;
+					TX_data[j+1] = 0x20;
+					TX_data[j+2] = 0x08;
+					j=j+3;
+				}
+			}
+			else if ( (loc_char == 0x0D) && (echo_ON) ){ //end of line
+				TX_data[j] = 0x0D;
+				TX_data[j+1] = 0x0A;
+				i++;
+				j = j + 2;
+				current_rx_line[current_rx_line_count] = 0;//null termination
+				current_rx_line_count++;
+				W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, j, 0);
+				j = 0;
+				HMI_line_parse (&ctx, current_rx_line, current_rx_line_count);
+				current_rx_line_count = 0;
+			}
+			else if (loc_char == 0x03) { //ctrl + C
+				HMI_cancel_current(&ctx);
+				//printf("CTRL + C\r\n");
+				i++;
+			} else {
+				i++;
+			}
+		}
+	}
+	if (j > 0) {
+		W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, j, 0);
+	}
+	//printf("\r\n");
+}
+
 /**
  * Called regularly by the main loop, and manages network events (new connection,
  * data, etc)
  */
 int telnet_loop (W5500_chip* W5500) {
 	static unsigned char previous_state = 0;
+	uint8_t current_state; // Socket state as returned by the W5500
 	uint8_t RX_data[100];
 	uint8_t TX_data[100];
-	uint8_t current_state; // Socket state as returned by the W5500
 	unsigned int timer_snapshot;
-	char loc_char;
 	int RX_size = 0;
-	int i, j;
 	int result;
 
 	result=0;
@@ -271,72 +342,8 @@ int telnet_loop (W5500_chip* W5500) {
 		//timeout 
 	}
 	if (RX_size > 0) {
-		telnet_last_activity = GLOBAL_timer.read_us();
 		result=1;
-		// printf("RX Size: %i\r\n", RX_size);
-		W5500_read_RX_buffer(W5500, TELNET_SOCKET, RX_data, RX_size+3);
-		// Note: RX_data starts with three extra bytes (W5500 register/block info) that are not
-		// part of the actual received data
-		RX_data[RX_size+3] = 0;
-		i = 3;
-		j = 0;
-		while (i < (RX_size+3)) {
-			loc_char = (char)RX_data[i];
-			// printf("%02X %c\r\n", loc_char, loc_char);
-			if ( (loc_char >= 0x20) && (loc_char <= 0x7E) ) {//displayable char
-				if ( (current_rx_line_count < 98) && (echo_ON) ) {
-					TX_data[j]=RX_data[i];
-					i++;
-					j++;
-					current_rx_line[current_rx_line_count] = loc_char;
-					current_rx_line_count++;
-				} else {
-					i++;
-				}
-			} 
-			else { // special char
-				if (loc_char == 0xFF) {//IAC
-					if (RX_data[i+1] == 244) {//ctrl+C
-						HMI_cancel_current(&ctx);
-					}
-					i = i + 3;
-				}
-				else if ( ( (loc_char == 0x08) || (loc_char == 0x7F) ) && (echo_ON) ) { //backspace
-					i++;
-					
-					if (current_rx_line_count>0) {
-						current_rx_line_count--;
-						TX_data[j] = 0x08;
-						TX_data[j+1] = 0x20;
-						TX_data[j+2] = 0x08;
-						j=j+3;
-					}
-				}
-				else if ( (loc_char == 0x0D) && (echo_ON) ){ //end of line
-					TX_data[j] = 0x0D;
-					TX_data[j+1] = 0x0A;
-					i++;
-					j = j + 2;
-					current_rx_line[current_rx_line_count] = 0;//null termination
-					current_rx_line_count++;
-					W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, j, 0);
-					j = 0;
-					HMI_line_parse (&ctx, current_rx_line, current_rx_line_count);
-					current_rx_line_count = 0;
-				}
-				else if (loc_char == 0x03) { //ctrl + C
-					HMI_cancel_current(&ctx);
-					//printf("CTRL + C\r\n");
-					i++;
-				} else {
-					i++;
-				}
-			}
-		}
-		if (j > 0) {
-			W5500_write_TX_buffer (W5500, TELNET_SOCKET, TX_data, j, 0);
-		}
-		//printf("\r\n");
+		HMI_telnet_recv(W5500, RX_size, RX_data, TX_data);
 	}
 	return result;
 }
