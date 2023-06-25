@@ -1,5 +1,5 @@
 #include "pico_hal.h"
-#include "../source/HMI_telnet.h"
+#include "../source/HMI_telnet_def.h"
 #include "npr70piextra.h"
 #include "common.h"
 
@@ -60,7 +60,7 @@ void virt_EEPROM_errase_all(void)
 
 #endif
 
-int cmd_ls(struct context *ctx)
+enum retcode cmd_ls(struct context *ctx)
 {
 	struct lfs_info info;
 	struct pico_fsstat_t fsstat;
@@ -68,24 +68,26 @@ int cmd_ls(struct context *ctx)
 	if (dir < 0) 
 		return dir;
 	while(pico_dir_read(dir, &info) > 0) {
-		if (strcmp(info.name,".") && strcmp(info.name,".."))
-			HMI_cprintf(ctx,"%s %d\r\n",info.name,info.size);
+		if (strcmp(info.name,".") && strcmp(info.name,"..")) {
+			HMI_cwrite(ctx, info.name, strlen(info.name));
+			HMI_cprintf(ctx," %ld\r\n",info.size);
+		}
 	}
 	pico_dir_close(dir);
 	pico_fsstat(&fsstat);
-	HMI_cprintf(ctx,"%d*%d/%d(%d%%)\r\n",fsstat.block_size,fsstat.blocks_used,fsstat.block_count,fsstat.blocks_used*100/fsstat.block_count);
-	return 3;
+	HMI_cprintf(ctx,"%ld*%ld/%ld(%ld%%)\r\n",fsstat.block_size,fsstat.blocks_used,fsstat.block_count,fsstat.blocks_used*100/fsstat.block_count);
+	return RET_OK_PROMPT;
 }
 
-int cmd_rm(struct context *ctx)
+enum retcode cmd_rm(struct context *ctx)
 {
 	int err=pico_remove(ctx->s1);
 	if (err < 0)
-		return err;
-	return 3;
+		return LFS_ERR(err);
+	return RET_OK_PROMPT;
 }
 
-int cmd_cat(struct context *ctx)
+enum retcode cmd_cat(struct context *ctx)
 {
 	char buffer[256];
 	int file=pico_open(ctx->s1, LFS_O_RDONLY);
@@ -98,27 +100,27 @@ int cmd_cat(struct context *ctx)
 		HMI_cwrite(ctx, buffer, size);	
 	}
 	pico_close(file);
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-int cmd_cp(struct context *ctx)
+enum retcode cmd_cp(struct context *ctx)
 {
 	char buffer[256];
 	int file1,file2;
-	int ret=3;
+	enum retcode ret=RET_OK_PROMPT;
 	file1=pico_open(ctx->s1, LFS_O_RDONLY);
 	if (file1 < 0)
-		return file1;
+		return LFS_ERR(file1);
 	file2=pico_open(ctx->s2, LFS_O_CREAT|LFS_O_RDWR|LFS_O_TRUNC);
 	if (file2 < 0)
-		return file2;
+		return LFS_ERR(file2);
 	for (;;) {
 		int size2,size1=pico_read(file1, buffer, sizeof(buffer));
-		if (!size2)
+		if (!size1)
 			break;
 		size2=pico_write(file2, buffer, size1);
 		if (size2 != size1) {
-			ret=LFS_ERR_NOSPC;
+			ret=LFS_ERR(LFS_ERR_NOSPC);
 			break;
 		}
 	}
@@ -127,15 +129,15 @@ int cmd_cp(struct context *ctx)
 	return ret;
 }
 
-int cmd_mv(struct context *ctx)
+enum retcode cmd_mv(struct context *ctx)
 {
 	int err=pico_rename(ctx->s1, ctx->s2);
 	if (err)
 		return err;
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-int cmd_sum(struct context *ctx)
+enum retcode cmd_sum(struct context *ctx)
 {
 	unsigned char buffer[256];
 	int i,total_size,checksum=0,fd=pico_open(ctx->s1,LFS_O_RDONLY);
@@ -153,5 +155,5 @@ int cmd_sum(struct context *ctx)
 		}
 	}
 	HMI_cprintf(ctx,"%05d %5d\r\n",checksum,(total_size+1023)/1024);
-	return 3;	
+	return RET_OK_PROMPT;	
 }

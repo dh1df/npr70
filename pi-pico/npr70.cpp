@@ -57,11 +57,11 @@ void debug(const char *str, ...)
 	va_end(ap);
 }
 
-int
+enum retcode
 cmd_test(struct context *ctx)
 {
 	HMI_cprintf(ctx, "%d\r\n", Int_SI4463.read());
-	return 3;
+	return RET_OK_PROMPT;
 }
 
 int main()

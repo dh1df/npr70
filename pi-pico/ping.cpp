@@ -82,7 +82,7 @@ static void cmd_ping_send(struct ping_context *pctx)
 	}
 }
 
-int cmd_ping(struct context *ctx)
+enum retcode cmd_ping(struct context *ctx)
 {
 	err_t err=ERR_OK;
 	struct ping_context *pctx=&cmd_ping_context;

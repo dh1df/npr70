@@ -236,15 +236,15 @@ unsigned short AnalogIn::read_u16(void)
 	return adc_read() << 4;
 }
 
-int
+enum retcode
 cmd_bootloader(struct context *c)
 {
         HMI_close_telnet();
         call_bootloader();
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-int
+enum retcode
 cmd_uptime(struct context *c)
 {
 	uint32_t s=time_us_64()/1000000;
@@ -252,5 +252,5 @@ cmd_uptime(struct context *c)
 	uint32_t h=(s/3600)%60;
 	uint32_t d=s/3600/24;
 	HMI_cprintf(c,"%d days %d:%d:%d\r\n",d,h,m,s%60);
-	return 2;
+	return RET_PROMPT;
 }

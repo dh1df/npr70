@@ -431,17 +431,17 @@ void NFPR_config_read(AnalogIn* analog_pin) {
         }
 }
 
-static int
+static enum retcode
 cmd_xset_help(struct context *c)
 {
 	int i;
 	for (i = 0 ; i < xconfig_count ; i++) {
 		HMI_cprintf(c,"%s\r\n",config[i].name);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-int
+enum retcode
 cmd_xset(struct context *c)
 {
 	int i;
@@ -450,13 +450,13 @@ cmd_xset(struct context *c)
 	for (i = 0 ; i < xconfig_count ; i++) {
 		if (!strcmp(c->s1, config[i].name)) {
 			config_val_set(&config[i], c->s2);
-			return 3;
+			return RET_OK_PROMPT;
 		}
 	}
-	return 0;
+	return RET_UNKNOWN;
 }
 
-int
+enum retcode
 cmd_xdisplay(struct context *c)
 {
 	int i;
@@ -465,5 +465,5 @@ cmd_xdisplay(struct context *c)
 		config_val(&config[i], val, sizeof(val));
 		HMI_cprintf(c,"%s:%s\r\n",config[i].name,val);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }

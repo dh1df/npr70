@@ -4,7 +4,7 @@
 #include "hardware/regs/addressmap.h"
 #include "hardware/sync.h"
 #include "hardware/watchdog.h"
-#include "../source/HMI_telnet.h"
+#include "../source/HMI_telnet_def.h"
 #include "npr70piextra.h"
 #include "common.h"
 
@@ -51,7 +51,7 @@ static void __no_inline_not_in_flash_func(flash)(struct map *map, int count, int
 	for(;;);
 }
 
-static int cmd_flash_do(struct context *ctx, char *filename)
+static enum retcode cmd_flash_do(struct context *ctx, char *filename)
 {
 	int total_size,idx=0,fd=pico_open(filename,LFS_O_RDONLY);
 	char *name="npr70pi.bin\n";
@@ -92,7 +92,7 @@ static int cmd_flash_do(struct context *ctx, char *filename)
 	return 3;
 }
 
-int cmd_flash(struct context *ctx)
+enum retcode cmd_flash(struct context *ctx)
 {
 	char *filename=ctx->s1;
 	char *prefix="http://";

@@ -415,7 +415,7 @@ W5500_re_configure_periodic_call(W5500_chip* SPI_p_loc)
 {
 }
 
-int
+enum retcode
 cmd_display_net(struct context *ctx)
 {
 	struct netif *netif=netif_list;
@@ -441,7 +441,7 @@ cmd_display_net(struct context *ctx)
 		
 		netif=netif->next;
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
 extern "C" {

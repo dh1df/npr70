@@ -1,5 +1,5 @@
 #include "pico_hal.h"
-#include "../source/HMI_telnet.h"
+#include "../source/HMI_telnet_def.h"
 #include "npr70piextra.h"
 #include "common.h"
 #include "lwip/apps/http_client.h"
@@ -62,7 +62,7 @@ void result_fn(void *arg, httpc_result_t httpc_result, u32_t rx_content_len, u32
 
 
 static httpc_connection_t settings;
-int cmd_wget(struct context *ctx)
+enum retcode cmd_wget(struct context *ctx)
 {
 	const char *host,*path,*file,*prefix="http://";
 	char hostbuf[128];

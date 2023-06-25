@@ -36,44 +36,44 @@ static int echo_ON = 1;
 static unsigned int telnet_last_activity;
 static struct context ctx;
 
-static int HMI_cmd_display(struct context *c);
-static int HMI_cmd_exit(struct context *c);
-static int HMI_cmd_radio(struct context *c);
-static int HMI_cmd_reboot(struct context *c);
-static int HMI_cmd_reset_to_default(struct context *c);
-static int HMI_cmd_save(struct context *c);
-static int HMI_cmd_set(struct context *c);
-static int HMI_cmd_status(struct context *c);
-static int HMI_cmd_tx_test(struct context *c);
-static int HMI_cmd_version(struct context *c);
-static int HMI_cmd_who(struct context *c);
+static enum retcode HMI_cmd_display(struct context *c);
+static enum retcode HMI_cmd_exit(struct context *c);
+static enum retcode HMI_cmd_radio(struct context *c);
+static enum retcode HMI_cmd_reboot(struct context *c);
+static enum retcode HMI_cmd_reset_to_default(struct context *c);
+static enum retcode HMI_cmd_save(struct context *c);
+static enum retcode HMI_cmd_set(struct context *c);
+static enum retcode HMI_cmd_status(struct context *c);
+static enum retcode HMI_cmd_tx_test(struct context *c);
+static enum retcode HMI_cmd_version(struct context *c);
+static enum retcode HMI_cmd_who(struct context *c);
 
-static int HMI_cmd_set_callsign(struct context *c);
-static int HMI_cmd_set_client_req_size(struct context *c);
-static int HMI_cmd_set_def_route_active(struct context *c);
-static int HMI_cmd_set_def_route_val(struct context *c);
-static int HMI_cmd_set_dhcp_active(struct context *c);
-static int HMI_cmd_set_dns_active(struct context *c);
-static int HMI_cmd_set_dns_value(struct context *c);
-static int HMI_cmd_set_freq_shift(struct context *c);
-static int HMI_cmd_set_frequency(struct context *c);
-static int HMI_cmd_set_ip_beginn(struct context *c);
-static int HMI_cmd_set_is_master(struct context *c);
-static int HMI_cmd_set_master_down_ip(struct context *c);
-static int HMI_cmd_set_master_fdd(struct context *c);
-static int HMI_cmd_set_master_ip_size(struct context *c);
-static int HMI_cmd_set_modem_ip(struct context *c);
-static int HMI_cmd_set_modulation(struct context *c);
-static int HMI_cmd_set_netmask(struct context *c);
-static int HMI_cmd_set_radio_netw_id(struct context *c);
-static int HMI_cmd_set_radio_on_at_startup(struct context *c);
-static int HMI_cmd_set_rf_power(struct context *c);
-static int HMI_cmd_set_telnet_active(struct context *c);
-static int HMI_cmd_set_telnet_routed(struct context *c);
+static enum retcode HMI_cmd_set_callsign(struct context *c);
+static enum retcode HMI_cmd_set_client_req_size(struct context *c);
+static enum retcode HMI_cmd_set_def_route_active(struct context *c);
+static enum retcode HMI_cmd_set_def_route_val(struct context *c);
+static enum retcode HMI_cmd_set_dhcp_active(struct context *c);
+static enum retcode HMI_cmd_set_dns_active(struct context *c);
+static enum retcode HMI_cmd_set_dns_value(struct context *c);
+static enum retcode HMI_cmd_set_freq_shift(struct context *c);
+static enum retcode HMI_cmd_set_frequency(struct context *c);
+static enum retcode HMI_cmd_set_ip_beginn(struct context *c);
+static enum retcode HMI_cmd_set_is_master(struct context *c);
+static enum retcode HMI_cmd_set_master_down_ip(struct context *c);
+static enum retcode HMI_cmd_set_master_fdd(struct context *c);
+static enum retcode HMI_cmd_set_master_ip_size(struct context *c);
+static enum retcode HMI_cmd_set_modem_ip(struct context *c);
+static enum retcode HMI_cmd_set_modulation(struct context *c);
+static enum retcode HMI_cmd_set_netmask(struct context *c);
+static enum retcode HMI_cmd_set_radio_netw_id(struct context *c);
+static enum retcode HMI_cmd_set_radio_on_at_startup(struct context *c);
+static enum retcode HMI_cmd_set_rf_power(struct context *c);
+static enum retcode HMI_cmd_set_telnet_active(struct context *c);
+static enum retcode HMI_cmd_set_telnet_routed(struct context *c);
 
-static int HMI_cmd_display_config(struct context *c);
-static int HMI_cmd_display_dhcp_arp(struct context *c);
-static int HMI_cmd_display_static(struct context *c);
+static enum retcode HMI_cmd_display_config(struct context *c);
+static enum retcode HMI_cmd_display_dhcp_arp(struct context *c);
+static enum retcode HMI_cmd_display_static(struct context *c);
 
 static const struct command commands[]={
 #ifdef CUSTOM_COMMANDS
@@ -91,6 +91,12 @@ static const struct command commands[]={
 	{"TX_test", HMI_cmd_tx_test},
 	{"version", HMI_cmd_version},
 	{"who", HMI_cmd_who},
+};
+
+static const struct error errors[]={
+#ifdef CUSTOM_ERRORS
+	CUSTOM_ERRORS
+#endif
 };
 
 static const struct command display_commands[]={
@@ -127,7 +133,7 @@ static const struct command set_commands[]={
 	{"telnet_routed", HMI_cmd_set_telnet_routed},
 };
 
-static int HMI_command_help(struct context *ctx, const struct command *cmd, int len, int hor)
+static enum retcode HMI_command_help(struct context *ctx, const struct command *cmd, int len, int hor)
 {
 	int i,col=0;
 	for (i = 0 ; i < len ; i++) {
@@ -144,10 +150,10 @@ static int HMI_command_help(struct context *ctx, const struct command *cmd, int 
 	}
 	if (hor && col)
 		HMI_cprintf(ctx, "\r\n");
-	return 2;
+	return RET_PROMPT;
 }
 
-int HMI_command_parse(struct context *ctx, const char *s, const struct command *cmd, int len, int help)
+enum retcode HMI_command_parse(struct context *ctx, const char *s, const struct command *cmd, int len, int help)
 {
 	int i;
 	if (help && !strcmp(s,"help"))
@@ -157,7 +163,7 @@ int HMI_command_parse(struct context *ctx, const char *s, const struct command *
 			return cmd->func(ctx);
 		cmd++;
 	}
-	return 0;
+	return RET_UNKNOWN;
 }
 
 void
@@ -376,7 +382,7 @@ int serial_term_loop (void) {
 	}
 }
 
-static int HMI_cmd_radio(struct context *c)
+static enum retcode HMI_cmd_radio(struct context *c)
 {
 	if (strcmp(c->s1, "on") == 0) {
 		if (CONF_radio_state_ON_OFF == 0) {
@@ -392,44 +398,44 @@ static int HMI_cmd_radio(struct context *c)
 	}
 	else {
 		HMI_printf("unknown radio command, use on or off\r\n");
-		return 2;
+		return RET_PROMPT;
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_display(struct context *c)
+static enum retcode HMI_cmd_display(struct context *c)
 {
-	int command_understood = HMI_command_parse(c, c->s1, display_commands, sizeof(display_commands)/sizeof(display_commands[0]), 1);
+	enum retcode command_understood = HMI_command_parse(c, c->s1, display_commands, sizeof(display_commands)/sizeof(display_commands[0]), 1);
 	if (command_understood)
 		return command_understood;
 	HMI_printf("unknown display command, use display help for help\r\n");
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_version(struct context *c)
+static enum retcode HMI_cmd_version(struct context *c)
 {
 	HMI_cprintf(c,"firmware: %s\r\nfreq band: %s\r\n", FW_VERSION, FREQ_BAND);
 	return RET_PROMPT;
 }
 
-static int HMI_cmd_reset_to_default(struct context *c)
+static enum retcode HMI_cmd_reset_to_default(struct context *c)
 {
 	HMI_printf("clearing saved config...\r\n");
 	RADIO_off_if_necessary(0);
 	virt_EEPROM_errase_all();
 	HMI_printf("Done. Now rebooting...\r\n");
 	NVIC_SystemReset();
-	return 1;
+	return RET_SILENT;
 }
 
-static int HMI_cmd_save(struct context *c)
+static enum retcode HMI_cmd_save(struct context *c)
 {
 	int temp;
 	RADIO_off_if_necessary(0);
 	temp = NFPR_config_save();
 	RADIO_restart_if_necessary(0, 0, 1);
 	HMI_printf("saved index:%i\r\n", temp);
-	return 2;
+	return RET_PROMPT;
 }
 
 int HMI_exec(struct context *c)
@@ -448,9 +454,17 @@ int HMI_exec(struct context *c)
 		HMI_cprintf(c, "unknown command, use help for help\r\n");
 	}
 	if (command_understood <= RET_ERROR) { /* < 0=Error */
-		HMI_cprintf(c, "ERR %d\r\n",command_understood);
+		unsigned int i;
+		const char *text=NULL;
+		for (i = 0 ; i < sizeof(errors)/sizeof(struct error) ; i++)
+			if (errors[i].code == command_understood)
+				text=errors[i].text;
+		if (text)
+			HMI_cprintf(c, "ERR %d %s\r\n",command_understood,text);
+		else
+			HMI_cprintf(c, "ERR %d\r\n",command_understood);
 	}
-	if (command_understood >= RET_PROMPT || command_understood <= RET_ERROR) { /* 2=Understood with prompt */
+	if (command_understood >= RET_PROMPT || command_understood <= RET_UNKNOWN) { /* 2=Understood with prompt */
 		HMI_prompt(c);
 	}
 	/* 1=Understood */
@@ -492,7 +506,7 @@ int HMI_check_radio_OFF(struct context *c) {
 }
 
 
-int HMI_cmd_tx_test(struct context *c) {
+static enum retcode HMI_cmd_tx_test(struct context *c) {
 	unsigned int duration;
 	if ( HMI_check_radio_OFF(c) == 1) {
 		sscanf (c->s1, "%i", &duration);
@@ -523,9 +537,9 @@ int HMI_cmd_tx_test(struct context *c) {
 		
 		SI4432_TX_test(duration);
 	
-		return 3;	
+		return RET_OK_PROMPT;	
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
 void HMI_close_telnet(void)
@@ -536,11 +550,11 @@ void HMI_close_telnet(void)
 }
 
 
-int HMI_cmd_reboot(struct context *c) {
+static enum retcode HMI_cmd_reboot(struct context *c) {
 	HMI_close_telnet();
 	//extern "C" void mbed_reset();
 	NVIC_SystemReset();
-	return 2;
+	return RET_PROMPT;
 }
 
 void HMI_force_exit(void) {
@@ -559,7 +573,7 @@ void HMI_force_exit(void) {
 	}
 }
 
-int HMI_cmd_exit(struct context *c) {
+static enum retcode HMI_cmd_exit(struct context *c) {
 	if (is_telnet_opened == 1) {
 		W5500_write_byte(W5500_p1, 0x0001, TELNET_SOCKET, 0x08); //close TCP
 		is_telnet_opened = 0;
@@ -573,14 +587,14 @@ int HMI_cmd_exit(struct context *c) {
 		fflush(stdout);
 		HMI_prompt(NULL);
 	}
-	return 1;
+	return RET_SILENT;
 }
 
 static char HMI_yes_no[2][4]={'n','o',0,0, 'y','e','s',0};
 // static char HMI_trans_modes[2][4]={'I','P',0,0,'E','t','h',0};
 static char HMI_master_FDD[3][5]={'n','o',0,0,0,'d','o','w','n',0,'u','p',0,0,0};
 
-int HMI_cmd_display_config(struct context *c) {
+static enum retcode HMI_cmd_display_config(struct context *c) {
 	unsigned char IP_loc[8];
 
 	HMI_printf("CONFIG:\r\n  callsign: '%s'\r\n  is_master: %s\r\n  MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n", CONF_radio_my_callsign+2, HMI_yes_no[is_TDMA_master],CONF_modem_MAC[0],CONF_modem_MAC[1],CONF_modem_MAC[2],CONF_modem_MAC[3],CONF_modem_MAC[4],CONF_modem_MAC[5]);
@@ -616,19 +630,19 @@ int HMI_cmd_display_config(struct context *c) {
 		HMI_printf("  IP_begin: %i.%i.%i.%i\r\n", IP_loc[0], IP_loc[1],IP_loc[2],IP_loc[3]);
 		HMI_printf("  client_req_size: %ld\r\n  DHCP_active: %s\r\n", CONF_radio_IP_size_requested, HMI_yes_no[LAN_conf_saved.DHCP_server_active]);
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-int HMI_cmd_display_dhcp_arp(struct context *c) {
+static enum retcode HMI_cmd_display_dhcp_arp(struct context *c) {
 	DHCP_ARP_print_entries();
-	return 2;
+	return RET_PROMPT;
 }
 
-int HMI_cmd_display_static(struct context *c) {
-	return 2;
+static enum retcode HMI_cmd_display_static(struct context *c) {
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_callsign(struct context *c)
+static enum retcode HMI_cmd_set_callsign(struct context *c)
 {
 	RADIO_off_if_necessary(1);
 	strcpy (CONF_radio_my_callsign+2, c->s2);
@@ -637,10 +651,10 @@ static int HMI_cmd_set_callsign(struct context *c)
 	CONF_radio_my_callsign[15] = 0;
 	RADIO_restart_if_necessary(1, 0, 1);
 	HMI_cprintf(c, "new callsign '%s'\r\n", CONF_radio_my_callsign+2);
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_is_master(struct context *c)
+static enum retcode HMI_cmd_set_is_master(struct context *c)
 {
 	char DHCP_warning[50];
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
@@ -655,10 +669,10 @@ static int HMI_cmd_set_is_master(struct context *c)
 		}
 		HMI_cprintf(c, "Master '%s'%s\r\n", c->s2, DHCP_warning);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_telnet_active(struct context *c)
+static enum retcode HMI_cmd_set_telnet_active(struct context *c)
 {
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
@@ -666,10 +680,10 @@ static int HMI_cmd_set_telnet_active(struct context *c)
 		is_telnet_active = temp_uchar;
 		HMI_printf("telnet active '%s'\r\n", c->s2);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_telnet_routed(struct context *c)
+static enum retcode HMI_cmd_set_telnet_routed(struct context *c)
 {
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
@@ -677,10 +691,10 @@ static int HMI_cmd_set_telnet_routed(struct context *c)
 		//W5500_re_configure_gateway(W5500_p1);
 		HMI_printf("telnet routed '%s'\r\n", c->s2);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_dns_active(struct context *c)
+static enum retcode HMI_cmd_set_dns_active(struct context *c)
 {
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
@@ -689,10 +703,10 @@ static int HMI_cmd_set_dns_active(struct context *c)
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("DNS active '%s'", c->s2);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_def_route_active(struct context *c)
+static enum retcode HMI_cmd_set_def_route_active(struct context *c)
 {
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
@@ -702,10 +716,10 @@ static int HMI_cmd_set_def_route_active(struct context *c)
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("default route active '%s'\r\n", c->s2);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_master_fdd(struct context *c)
+static enum retcode HMI_cmd_set_master_fdd(struct context *c)
 {
 	if(strcmp(c->s2,"no") == 0) {
 		CONF_master_FDD = 0;
@@ -725,20 +739,20 @@ static int HMI_cmd_set_master_fdd(struct context *c)
 	else {
 		HMI_printf("  wrong value. Use no,down or up\r\n");
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_radio_on_at_startup(struct context *c)
+static enum retcode HMI_cmd_set_radio_on_at_startup(struct context *c)
 {
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
 		CONF_radio_default_state_ON_OFF = temp_uchar;
 		HMI_printf("radio_on_at_start '%s'\r\n", c->s2);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_dhcp_active(struct context *c)
+static enum retcode HMI_cmd_set_dhcp_active(struct context *c)
 {
 	char DHCP_warning[50];
 	unsigned char temp_uchar = HMI_yes_no_2int(c->s2);
@@ -750,12 +764,12 @@ static int HMI_cmd_set_dhcp_active(struct context *c)
 			strcpy (DHCP_warning, ""); 
 		}
 		HMI_printf("DHCP_active: '%s'%s\r\n", c->s2, DHCP_warning);
-		return 3;
+		return RET_OK_PROMPT;
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_modem_ip(struct context *c)
+static enum retcode HMI_cmd_set_modem_ip(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
@@ -765,24 +779,24 @@ static int HMI_cmd_set_modem_ip(struct context *c)
 		//W5500_re_configure();
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_netmask(struct context *c)
+static enum retcode HMI_cmd_set_netmask(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
 		RADIO_off_if_necessary(1);
-		return 3;
+		return RET_OK_PROMPT;
 		LAN_conf_saved.LAN_subnet_mask = temp_uint;
 		//HMI_force_exit();
 		//W5500_re_configure();
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_def_route_val(struct context *c)
+static enum retcode HMI_cmd_set_def_route_val(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
@@ -791,10 +805,10 @@ static int HMI_cmd_set_def_route_val(struct context *c)
 		//W5500_re_configure_gateway(W5500_p1);
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_dns_value(struct context *c)
+static enum retcode HMI_cmd_set_dns_value(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
@@ -802,11 +816,11 @@ static int HMI_cmd_set_dns_value(struct context *c)
 		LAN_conf_saved.LAN_DNS_value = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
 
-static int HMI_cmd_set_ip_beginn(struct context *c)
+static enum retcode HMI_cmd_set_ip_beginn(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
@@ -814,10 +828,10 @@ static int HMI_cmd_set_ip_beginn(struct context *c)
 		CONF_radio_IP_start = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_master_down_ip(struct context *c)
+static enum retcode HMI_cmd_set_master_down_ip(struct context *c)
 {
 	unsigned long int temp_uint = HMI_str2IP(c->s2);
 	if (temp_uint !=0) {
@@ -825,10 +839,10 @@ static int HMI_cmd_set_master_down_ip(struct context *c)
 		CONF_master_down_IP = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
 	}
-	return 3;
+	return RET_OK_PROMPT;
 }
 
-static int HMI_cmd_set_master_ip_size(struct context *c)
+static enum retcode HMI_cmd_set_master_ip_size(struct context *c)
 {
 	unsigned long int temp_uint;
 	int temp = sscanf (c->s2, "%ld", &temp_uint);
@@ -836,15 +850,15 @@ static int HMI_cmd_set_master_ip_size(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_radio_IP_size = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	}
 	else {
 		HMI_printf("wrong value\r\n");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_client_req_size(struct context *c)
+static enum retcode HMI_cmd_set_client_req_size(struct context *c)
 {
 	unsigned long int temp_uint;
 	int temp = sscanf (c->s2, "%ld", &temp_uint);
@@ -852,16 +866,16 @@ static int HMI_cmd_set_client_req_size(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_radio_IP_size_requested = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	}
 	else {
 		HMI_printf("wrong value\r\n");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
 
-static int HMI_cmd_set_frequency(struct context *c)
+static enum retcode HMI_cmd_set_frequency(struct context *c)
 {
 	float frequency;
 	int temp = sscanf (c->s2, "%f", &frequency);
@@ -871,14 +885,14 @@ static int HMI_cmd_set_frequency(struct context *c)
 		CONF_frequency_HD = (short int)frequency;
 		//RADIO_compute_freq_params();//REMOVE TEST
 		RADIO_restart_if_necessary(0, 1, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	} else {
 		HMI_printf("wrong freq value\r\n");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_freq_shift(struct context *c)
+static enum retcode HMI_cmd_set_freq_shift(struct context *c)
 {
 	float frequency;
 	int temp = sscanf (c->s2, "%f", &frequency);
@@ -892,14 +906,14 @@ static int HMI_cmd_set_freq_shift(struct context *c)
 		//}else {
 		RADIO_restart_if_necessary(0, 1, 1);
 		//}
-		return 3;
+		return RET_OK_PROMPT;
 	} else {
 		HMI_printf("wrong freq value\r\n");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_rf_power(struct context *c)
+static enum retcode HMI_cmd_set_rf_power(struct context *c)
 {
 	int temp;
 	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp); 
@@ -908,15 +922,15 @@ static int HMI_cmd_set_rf_power(struct context *c)
 		CONF_radio_PA_PWR = temp;
 		SI4463_set_power(G_SI4463);
 		RADIO_restart_if_necessary(0, 0, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	} else {
 		HMI_printf("error : max RF_power value 127");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
 
-static int HMI_cmd_set_modulation(struct context *c)
+static enum retcode HMI_cmd_set_modulation(struct context *c)
 {
 	int temp;
 	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp);
@@ -926,14 +940,14 @@ static int HMI_cmd_set_modulation(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_radio_modulation = temp_uchar;
 		RADIO_restart_if_necessary(1, 1, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	} else {
 		HMI_printf("wrong modulation value");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set_radio_netw_id(struct context *c)
+static enum retcode HMI_cmd_set_radio_netw_id(struct context *c)
 {
 	int temp;
 	unsigned long int temp_uint = sscanf (c->s2, "%i", &temp);
@@ -942,19 +956,19 @@ static int HMI_cmd_set_radio_netw_id(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_radio_network_ID = temp_uchar;
 		RADIO_restart_if_necessary(1, 1, 1);
-		return 3;
+		return RET_OK_PROMPT;
 	} else {
 		HMI_printf("wrong value, 15 max");
 	}
-	return 2;
+	return RET_PROMPT;
 }
 
-static int HMI_cmd_set(struct context *c) {
+static enum retcode HMI_cmd_set(struct context *c) {
 	char* loc_param1=c->s1;
 	char* loc_param2=c->s2;
 	// unsigned char previous_freq_band;
 	if ((loc_param1) && (loc_param2)) {
-		int command_understood = HMI_command_parse(c, c->s1, set_commands, sizeof(set_commands)/sizeof(set_commands[0]), 0);
+		enum retcode command_understood = HMI_command_parse(c, c->s1, set_commands, sizeof(set_commands)/sizeof(set_commands[0]), 0);
 		if (command_understood)
 			return command_understood;
 		else {
@@ -964,9 +978,9 @@ static int HMI_cmd_set(struct context *c) {
 	} else {
 		HMI_cprintf(c, "set command requires 2 param, first one can be one of\r\n");
 		HMI_command_help(c, set_commands, sizeof(set_commands)/sizeof(set_commands[0]),1);
-		return 2;
+		return RET_PROMPT;
 	}
-	return 1;
+	return RET_SILENT;
 }
 
 unsigned long int HMI_str2IP(char* raw_string) {
@@ -1003,7 +1017,7 @@ unsigned char HMI_yes_no_2int(char* raw_string) {
 	return answer;
 }
 
-int HMI_cmd_who(struct context *c) {
+static enum retcode HMI_cmd_who(struct context *c) {
 	int i;
 	unsigned int loc_age;
 	unsigned int timer_snapshot;
@@ -1012,7 +1026,7 @@ int HMI_cmd_who(struct context *c) {
 	char temp_string[50] = {0x1B,0x5B,0x41,0x1B,0x5B,0x41,0x1B,0x5B,0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x1B, 0x5B, 0x41,0x00};
 
 	if (c->interrupt)
-		return 1;
+		return RET_SILENT;
 	if (!c->poll) {
 		temp_string[0] = 0; 
 	}
@@ -1042,10 +1056,10 @@ int HMI_cmd_who(struct context *c) {
 		
 	}
 	HMI_prompt_ctrlc(c);
-	return 4;
+	return RET_POLL_SLOW;
 }
 
-int HMI_cmd_status(struct context *c) {
+static enum retcode HMI_cmd_status(struct context *c) {
 	static char text_radio_status[3][22] = {
 		"waiting connection",
 		"connected",
@@ -1080,7 +1094,7 @@ int HMI_cmd_status(struct context *c) {
 	//temp_string[17]=0x41;
 	//temp_string[18]=0x00;
 	if (c->interrupt)
-		return 1;
+		return RET_SILENT;
 	if (!c->poll) { 
 		temp_string[0] = 0; 
 		G_downlink_bandwidth_temp = 0;
@@ -1127,7 +1141,7 @@ int HMI_cmd_status(struct context *c) {
 	HMI_prompt_ctrlc(c);
 	G_downlink_bandwidth_temp = 0;
 	G_uplink_bandwidth_temp = 0;
-	return 4;
+	return RET_POLL_SLOW;
 }
 
 void HMI_periodic_call (void) {
