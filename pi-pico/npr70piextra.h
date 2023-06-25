@@ -48,7 +48,10 @@
 #define CMD_UPTIME\
         {"uptime",cmd_uptime},
 
-#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER CMD_PING CMD_TRACE CMD_UPTIME
+#define CMD_FREE\
+        {"free",cmd_free},
+
+#define CUSTOM_COMMANDS CMD_WGET CMD_FS CMD_FLASH CMD_TEST CMD_XSET CMD_XDISPLAY CMD_BOOTLOADER CMD_PING CMD_TRACE CMD_UPTIME CMD_FREE
 #define CUSTOM_DISPLAY_COMMANDS {"net",cmd_display_net},
 
 
@@ -71,6 +74,7 @@ enum retcode cmd_bootloader(struct context *c);
 enum retcode cmd_ping(struct context *c);
 enum retcode cmd_trace(struct context *c);
 enum retcode cmd_uptime(struct context *c);
+enum retcode cmd_free(struct context *c);
 void virt_EEPROM_errase_all(void);
 #if 0
 unsigned int virt_EEPROM_write(void *data, unsigned int previous_index);

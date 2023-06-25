@@ -251,6 +251,23 @@ cmd_uptime(struct context *c)
 	uint32_t m=(s/60)%60;
 	uint32_t h=(s/3600)%60;
 	uint32_t d=s/3600/24;
-	HMI_cprintf(c,"%d days %d:%d:%d\r\n",d,h,m,s%60);
+	HMI_cprintf(c,"%lu days %02lu:%02lu:%02lu\r\n",d,h,m,s%60);
+	return RET_PROMPT;
+}
+
+extern "C" void *_sbrk(int incr);
+
+enum retcode
+cmd_free(struct context *c)
+{
+	extern char end;
+	extern char __StackLimit;
+	extern char __StackTop;
+	char *sbrk=(char *)_sbrk(0);
+	int used=sbrk-&end;
+	int free=&__StackLimit-sbrk;
+	int stack=&__StackTop-&__StackLimit;
+
+	HMI_cprintf(c,"end %p sbrk %p StackLimit %p StackTop %p used %d free %d total %d stack %d\r\n",&end,_sbrk(0),&__StackLimit,&__StackTop,used,free,used+free,stack);
 	return RET_PROMPT;
 }
