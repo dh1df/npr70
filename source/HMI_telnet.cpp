@@ -785,8 +785,9 @@ static enum retcode HMI_cmd_set_modem_ip(struct context *c)
 		//HMI_force_exit();
 		//W5500_re_configure();
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_netmask(struct context *c)
@@ -798,8 +799,9 @@ static enum retcode HMI_cmd_set_netmask(struct context *c)
 		//HMI_force_exit();
 		//W5500_re_configure();
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_def_route_val(struct context *c)
@@ -810,8 +812,9 @@ static enum retcode HMI_cmd_set_def_route_val(struct context *c)
 		LAN_conf_saved.LAN_def_route = temp_uint;
 		//W5500_re_configure_gateway(W5500_p1);
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_dns_value(struct context *c)
@@ -821,8 +824,9 @@ static enum retcode HMI_cmd_set_dns_value(struct context *c)
 		RADIO_off_if_necessary(1);
 		LAN_conf_saved.LAN_DNS_value = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 
@@ -833,8 +837,9 @@ static enum retcode HMI_cmd_set_ip_beginn(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_radio_IP_start = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_master_down_ip(struct context *c)
@@ -844,8 +849,9 @@ static enum retcode HMI_cmd_set_master_down_ip(struct context *c)
 		RADIO_off_if_necessary(1);
 		CONF_master_down_IP = temp_uint;
 		RADIO_restart_if_necessary(1, 0, 1);
+		return RET_OK_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_master_ip_size(struct context *c)
@@ -861,7 +867,7 @@ static enum retcode HMI_cmd_set_master_ip_size(struct context *c)
 	else {
 		HMI_printf("wrong value\r\n");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_client_req_size(struct context *c)
@@ -877,7 +883,7 @@ static enum retcode HMI_cmd_set_client_req_size(struct context *c)
 	else {
 		HMI_printf("wrong value\r\n");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 
@@ -895,7 +901,7 @@ static enum retcode HMI_cmd_set_frequency(struct context *c)
 	} else {
 		HMI_printf("wrong freq value\r\n");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_freq_shift(struct context *c)
@@ -916,7 +922,7 @@ static enum retcode HMI_cmd_set_freq_shift(struct context *c)
 	} else {
 		HMI_printf("wrong freq value\r\n");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_rf_power(struct context *c)
@@ -932,7 +938,7 @@ static enum retcode HMI_cmd_set_rf_power(struct context *c)
 	} else {
 		HMI_printf("error : max RF_power value 127");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 
@@ -950,7 +956,7 @@ static enum retcode HMI_cmd_set_modulation(struct context *c)
 	} else {
 		HMI_printf("wrong modulation value");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_radio_netw_id(struct context *c)
@@ -966,7 +972,7 @@ static enum retcode HMI_cmd_set_radio_netw_id(struct context *c)
 	} else {
 		HMI_printf("wrong value, 15 max");
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set(struct context *c) {
@@ -979,14 +985,13 @@ static enum retcode HMI_cmd_set(struct context *c) {
 			return command_understood;
 		else {
 			HMI_cprintf(c,"unknown config param\r\n");
-			HMI_prompt(c);
+			return RET_ERROR;
 		}
 	} else {
 		HMI_cprintf(c, "set command requires 2 param, first one can be one of\r\n");
 		HMI_command_help(c, set_commands, sizeof(set_commands)/sizeof(set_commands[0]),1);
 		return RET_PROMPT;
 	}
-	return RET_SILENT;
 }
 
 unsigned long int HMI_str2IP(char* raw_string) {
@@ -1000,9 +1005,8 @@ unsigned long int HMI_str2IP(char* raw_string) {
 	}
 	if (answer == 4) {
 		answer = IP_char2int(IP_char);
-		HMI_printf("OK\r\nready> ");
 	} else {
-		HMI_printf("bad IP format\r\nready> ");
+		HMI_printf("bad IP format\r\n");
 		answer = 0;
 	}
 	return answer;
