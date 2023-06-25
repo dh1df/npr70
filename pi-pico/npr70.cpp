@@ -69,6 +69,7 @@ int main()
 	stdio_uart_init_full(uart_default, 921600, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 	gpio_set_function(ENC_PIN_INT, GPIO_FUNC_SIO);
 	gpio_set_dir(ENC_PIN_INT, GPIO_IN);
+	tud_disconnect();
 	CS4=1;
 
 	wait_ms(200);
