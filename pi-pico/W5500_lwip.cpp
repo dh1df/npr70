@@ -425,6 +425,7 @@ enum retcode
 cmd_display_net(struct context *ctx)
 {
 	struct netif *netif=netif_list;
+	u8_t i=0;
 	while (netif) {
 		unsigned char *h=netif->hwaddr;
 		HMI_cprintf(ctx,"%p %s%s %d ",netif,netif == netif_default ? "*":"",netif->name,netif->num);
@@ -447,6 +448,15 @@ cmd_display_net(struct context *ctx)
 		
 		netif=netif->next;
 	}
+	for (;;) {
+		const ip_addr_t *dns=dns_getserver(i);
+		if (!dns || dns == IP_ADDR_ANY)
+			break;
+		HMI_cprintf(ctx,"%s %s",i?"":"dns",ipaddr_ntoa(dns));
+		i++;
+	}
+	if (i)
+		HMI_cprintf(ctx,"\r\n");
 	return RET_PROMPT;
 }
 
@@ -650,7 +660,7 @@ ip_setup(int reconf)
 	netif_set_addr(netif, &ipaddr, &netmask, &gw);
 	netif_set_default(netif);
 	IP_int2lwip(LAN_conf_applied.LAN_DNS_value, &dns);
-	dns_setserver(1, &dns);
+	dns_setserver(0, &dns);
 }
 
 static void
