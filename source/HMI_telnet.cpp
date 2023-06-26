@@ -658,7 +658,7 @@ static enum retcode HMI_cmd_set_callsign(struct context *c)
 	CONF_radio_my_callsign[15] = 0;
 	RADIO_restart_if_necessary(1, 0, 1);
 	HMI_cprintf(c, "new callsign '%s'\r\n", CONF_radio_my_callsign+2);
-	return RET_OK_PROMPT;
+	return RET_PROMPT;
 }
 
 static enum retcode HMI_cmd_set_is_master(struct context *c)
@@ -675,8 +675,9 @@ static enum retcode HMI_cmd_set_is_master(struct context *c)
 			strcpy (DHCP_warning, ""); 
 		}
 		HMI_cprintf(c, "Master '%s'%s\r\n", c->s2, DHCP_warning);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_telnet_active(struct context *c)
@@ -686,8 +687,9 @@ static enum retcode HMI_cmd_set_telnet_active(struct context *c)
 		if(is_telnet_opened) { HMI_cmd_exit(NULL); }
 		is_telnet_active = temp_uchar;
 		HMI_printf("telnet active '%s'\r\n", c->s2);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_telnet_routed(struct context *c)
@@ -697,8 +699,9 @@ static enum retcode HMI_cmd_set_telnet_routed(struct context *c)
 		is_telnet_routed = temp_uchar;
 		//W5500_re_configure_gateway(W5500_p1);
 		HMI_printf("telnet routed '%s'\r\n", c->s2);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_dns_active(struct context *c)
@@ -709,8 +712,9 @@ static enum retcode HMI_cmd_set_dns_active(struct context *c)
 		LAN_conf_saved.LAN_DNS_activ = temp_uchar;
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("DNS active '%s'", c->s2);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_def_route_active(struct context *c)
@@ -722,8 +726,9 @@ static enum retcode HMI_cmd_set_def_route_active(struct context *c)
 		//W5500_re_configure_gateway(W5500_p1);
 		RADIO_restart_if_necessary(1, 0, 1);
 		HMI_printf("default route active '%s'\r\n", c->s2);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_master_fdd(struct context *c)
@@ -745,6 +750,7 @@ static enum retcode HMI_cmd_set_master_fdd(struct context *c)
 	}
 	else {
 		HMI_printf("  wrong value. Use no,down or up\r\n");
+		return RET_ERROR;
 	}
 	return RET_OK_PROMPT;
 }
@@ -755,8 +761,9 @@ static enum retcode HMI_cmd_set_radio_on_at_startup(struct context *c)
 	if ( (temp_uchar==0) || (temp_uchar==1) ) {
 		CONF_radio_default_state_ON_OFF = temp_uchar;
 		HMI_printf("radio_on_at_start '%s'\r\n", c->s2);
+		return RET_PROMPT;
 	}
-	return RET_OK_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_dhcp_active(struct context *c)
@@ -771,9 +778,9 @@ static enum retcode HMI_cmd_set_dhcp_active(struct context *c)
 			strcpy (DHCP_warning, ""); 
 		}
 		HMI_printf("DHCP_active: '%s'%s\r\n", c->s2, DHCP_warning);
-		return RET_OK_PROMPT;
+		return RET_PROMPT;
 	}
-	return RET_PROMPT;
+	return RET_ERROR;
 }
 
 static enum retcode HMI_cmd_set_modem_ip(struct context *c)
@@ -1021,7 +1028,7 @@ unsigned char HMI_yes_no_2int(char* raw_string) {
 		answer = 0;
 	}
 	else {
-		HMI_printf("value must be 'yes' or 'no'\r\nready> ");
+		HMI_printf("value must be 'yes' or 'no'\r\n");
 		answer = -1;
 	}
 	return answer;
