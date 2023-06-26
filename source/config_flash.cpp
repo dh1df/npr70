@@ -144,7 +144,7 @@ unsigned char NFPR_random_generator(AnalogIn* analog_pin) {
 
 unsigned int NFPR_config_save(void) {
 	if ( (CONF_radio_my_callsign[0] == 0) || (CONF_radio_my_callsign[2] == 0) ) {
-		HMI_printf("ERROR : not yet configured %s\r\n",CONF_radio_my_callsign);		
+		HMI_printf("ERROR : not yet configured\r\n");
 	} else {
 		write_config_to_raw_string(&raw_config_data);
 		config_index = virt_EEPROM_write (&raw_config_data, config_index);
