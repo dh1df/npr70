@@ -847,7 +847,7 @@ void SI4463_prepa_TX_1(void) {
 	G_PTT_PA_pin->write(1);
 	timer_snapshot = GLOBAL_timer.read_us() + 50000;
 	//if ( (CONF_radio_state_ON_OFF) && (radio_lock_TX_pending == 0) ) {
-	if ( (CONF_radio_state_ON_OFF) ) {
+	if (CONF_radio_state_ON_OFF && TX_enabled) {
 		radio_lock_TX_pending = 1;
 		G_SI4463->RX_TX_state = 0; //temporary inhibit actions from HW IRQ
 		
@@ -869,7 +869,7 @@ void SI4463_prepa_TX_2(void) {
 	unsigned int loc_time_offset;
 	unsigned char trash [10];
 
-	if (CONF_radio_state_ON_OFF) {
+	if (CONF_radio_state_ON_OFF && TX_enabled) {
 		loc_time = GLOBAL_timer.read_us();
 		if (is_TDMA_master) {
 			loc_time_offset = 530; // 530
