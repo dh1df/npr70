@@ -41,3 +41,4 @@ Additional commands:
 - display help: Show display options
 - display net: Show network configuration
 - set help: Show set options
+- radio rx: Start radio in rx-only mode
