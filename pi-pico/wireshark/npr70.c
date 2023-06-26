@@ -350,9 +350,9 @@ dissect_npr70_signal_single(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     offset+=4;
     proto_tree_add_item(tree, hf_npr70_rssi_uplink, tvb, offset, 1, ENC_NA);
     offset+=1;
-    proto_tree_add_item(tree, hf_npr70_ber, tvb, offset, 2, ENC_BIG_ENDIAN);
+    proto_tree_add_item(tree, hf_npr70_ber, tvb, offset, 2, ENC_LITTLE_ENDIAN);
     offset+=2;
-    proto_tree_add_item(tree, hf_npr70_ta, tvb, offset, 2, ENC_BIG_ENDIAN);
+    proto_tree_add_item(tree, hf_npr70_ta, tvb, offset, 2, ENC_LITTLE_ENDIAN);
     offset+=2;
     break;
   case 5:
@@ -429,7 +429,7 @@ dissect_npr70_alloc_client(tvbuff_t *tvb,  packet_info *pinfo, proto_tree *tree,
     return -1;
   }
   col_append_fstr(pinfo->cinfo, COL_INFO, " %d",client);
-  proto_tree_add_item(tree, hf_npr70_tdma_offset, tvb, offset, 2, ENC_BIG_ENDIAN);
+  proto_tree_add_item(tree, hf_npr70_tdma_offset, tvb, offset, 2, ENC_LITTLE_ENDIAN);
   offset+=2;
   proto_tree_add_item(tree, hf_npr70_tdma_slot_length, tvb, offset, 1, ENC_NA);
   offset++;
