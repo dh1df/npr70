@@ -38,4 +38,6 @@ Additional commands:
 - trace: Enable RF-packet-tracing to usb network device
 - uptime: Show time since last crash ;-)
 - free: Show free memory
+- display help: Show display options
 - display net: Show network configuration
+- set help: Show set options
