@@ -192,6 +192,7 @@ extern long int TDMA_table_TA[radio_addr_table_size];
 
 extern unsigned short int G_downlink_RSSI; 
 extern unsigned short int G_radio_addr_table_RSSI[radio_addr_table_size]; 
+extern unsigned short int G_radio_addr_table_RSSI_down[radio_addr_table_size]; 
 extern unsigned short int G_downlink_BER; 
 extern unsigned short int G_radio_addr_table_BER[radio_addr_table_size]; 
 extern short int G_downlink_TA; 

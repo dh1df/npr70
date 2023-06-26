@@ -119,7 +119,11 @@ void signaling_whois_interpret(unsigned char loc_ID, unsigned char* loc_callsign
 	IP_int2char (loc_IP_start, IP_start_c); 
 	//printf("WHOIS ID:%i CALL:%s IP_start %i.%i.%i.%i IP_size %i\r\n", loc_ID, (char*)loc_callsign, 
 	//	IP_start_c[0], IP_start_c[1], IP_start_c[2], IP_start_c[3], loc_IP_size);
-	if (!is_TDMA_master) { //only useful for slaves
+	if (is_TDMA_master) { /* Store info for who display */
+		if (loc_ID < radio_addr_table_size) {
+			G_radio_addr_table_RSSI_down[loc_ID] = RSSI_loc;
+		}
+	} else { //only useful for slaves
 		if (loc_ID == 0x7F) { //who entry for master
 			strcpy (CONF_radio_master_callsign, (char*)loc_callsign);		
 		} 
@@ -464,7 +468,7 @@ void signaling_whois_TX(void) {
 		
 	} 
 	else if (my_client_radio_connexion_state == 2) { //Slave, only sends if really connected
-		signaling_single_whois_TX (my_radio_client_ID, CONF_radio_my_callsign, LAN_conf_applied.DHCP_range_start, LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal, G_downlink_RSSI, G_downlink_BER, 0); // client's own entry
+		signaling_single_whois_TX (my_radio_client_ID, CONF_radio_my_callsign, LAN_conf_applied.DHCP_range_start, LAN_conf_applied.DHCP_range_size + CONF_radio_IP_size_internal, G_downlink_RSSI >> 8, G_downlink_BER, 0); // client's own entry
 		signaling_single_whois_TX (0x7F, CONF_radio_master_callsign, LAN_conf_applied.LAN_modem_IP, 0, 0, 0, 0); //MASTER entry
 	}
 }

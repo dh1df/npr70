@@ -1054,14 +1054,17 @@ static enum retcode HMI_cmd_who(struct context *c) {
 		if (is_TDMA_master) {loc_age = 0;} // master : already timeout in state machine
 		//printf ("age:%i ", loc_age);
 		if ( (CONF_radio_addr_table_status[i]) && (loc_age < connexion_timeout) ) {
-			HMI_printf (" ID:%i Callsign:%s ", i, CONF_radio_addr_table_callsign[i]+2);
+			HMI_cprintf (c," ID:%i Callsign:%s ", i, CONF_radio_addr_table_callsign[i]+2);
 			IP_int2char (CONF_radio_addr_table_IP_begin[i], IP_c);
-			HMI_printf ("IP start:%i.%i.%i.%i ", IP_c[0], IP_c[1], IP_c[2], IP_c[3]);
+			HMI_cprintf (c,"IP start:%i.%i.%i.%i ", IP_c[0], IP_c[1], IP_c[2], IP_c[3]);
 			last_IP = CONF_radio_addr_table_IP_begin[i] + CONF_radio_addr_table_IP_size[i] - 1;
 			IP_int2char (last_IP, IP_c);
-			HMI_printf ("IP end:%i.%i.%i.%i\r\n", IP_c[0], IP_c[1], IP_c[2], IP_c[3]);
+			HMI_cprintf (c,"IP end:%i.%i.%i.%i", IP_c[0], IP_c[1], IP_c[2], IP_c[3]);
+			if (is_TDMA_master) 
+				HMI_cprintf (c," Down:%.1f Up:%.1f TA:%.1fkm ",G_radio_addr_table_RSSI_down[i]/2.0-136,G_radio_addr_table_RSSI[i]/256.0/2-136,0.015*TDMA_table_TA[i]);
+			HMI_cprintf (c,"\r\n");
 		} else {
-			HMI_printf ("                                                            \r\n");
+			HMI_cprintf (c,"                                                                                         \r\n");
 		}
 		
 	}

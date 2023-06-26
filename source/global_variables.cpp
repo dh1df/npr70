@@ -138,6 +138,7 @@ long int TDMA_table_TA[radio_addr_table_size];
 
 unsigned short int G_downlink_RSSI; 
 unsigned short int G_radio_addr_table_RSSI[radio_addr_table_size]; 
+unsigned short int G_radio_addr_table_RSSI_down[radio_addr_table_size]; 
 unsigned short int G_downlink_BER; 
 unsigned short int G_radio_addr_table_BER[radio_addr_table_size]; 
 short int G_downlink_TA; 
